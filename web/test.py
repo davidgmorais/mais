@@ -2,10 +2,13 @@
 #!/usr/bin/env python
 from HTMLParser import HTMLParser
 from html.parser import *
+from html.parser import HTMLParser
+import _markupbase
+import urllib.request
 import PySimpleGUIWeb as sg
 import cv2
 import numpy as np
-import _markupbase
+
 
 """
 Demo program that displays a webcam using OpenCV

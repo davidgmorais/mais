@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 #!/usr/bin/env python
+from HTMLParser import HTMLParser
 from html.parser import *
 import PySimpleGUIWeb as sg
 import cv2

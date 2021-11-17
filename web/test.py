@@ -1,8 +1,6 @@
 #!/usr/bin/python3
-#!/usr/bin/env python
 from html.parser import *
 from html.parser import HTMLParser
-from HTMLParser import HTMLParser
 
 import _markupbase
 import urllib.request

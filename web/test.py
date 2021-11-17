@@ -3,7 +3,6 @@
 from HTMLParser import HTMLParser
 from html.parser import *
 from html.parser import HTMLParser
-from html.parser import HTMLParser.HTMLParser
 
 import _markupbase
 import urllib.request

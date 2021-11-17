@@ -28,7 +28,7 @@ def main():
     # create the window and show it without the plot
 
     window = sg.Window('Demo Application - OpenCV Integration',
-                       layout, location=(800, 400), web_ip='192.168.1.255', web_port=8888, web_start_browser=False)
+                       layout, location=(800, 400), web_ip='127.0.0.1', web_port=8888, web_start_browser=False)
 
     # ---===--- Event LOOP Read and display frames, operate the GUI --- #
     cap = cv2.VideoCapture(0)

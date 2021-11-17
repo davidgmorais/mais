@@ -4,6 +4,7 @@ from html.parser import HTMLParser
 import PySimpleGUIWeb as sg
 import cv2
 import numpy as np
+import _markupbase
 
 """
 Demo program that displays a webcam using OpenCV

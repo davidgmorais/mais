@@ -157,7 +157,7 @@ def tasks():
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='127.6.6.6', port=5000, debug=True)
 
 camera.release()
 cv2.destroyAllWindows()

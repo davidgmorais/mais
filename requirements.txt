@@ -1,0 +1,6 @@
+opencv-python~=4.5.1.48
+PySimpleGUI~=4.55.1
+numpy~=1.19.5
+dlib~=19.22.1
+imutils~=0.5.4
+mysql-connector-python~=8.0.22

@@ -6,9 +6,9 @@ class ObjectDetection:
     # init the Object Detection instance with the configurations
     def __init__(self):
         self.class_names = []
-        self.class_file = 'objectDetectorConf/coco.names'
-        self.config_path = 'objectDetectorConf/ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt'
-        self.weight_path = 'objectDetectorConf/frozen_inference_graph.pb'
+        self.class_file = 'configs/coco.names'
+        self.config_path = 'configs/ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt'
+        self.weight_path = 'configs/frozen_inference_graph.pb'
 
         with open(self.class_file, 'rt') as file:
             self.class_names = file.read().rstrip('\n').split('\n')

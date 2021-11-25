@@ -138,11 +138,10 @@ class FaceRecognition:
 
         query = f"SELECT email FROM USER WHERE email = %s;"
         cursor.execute(query, [email])
-        cursor.fetchall()
-        user_count = cursor.rowcount
+        users = cursor.fetchall()
         cursor.close()
 
-        if user_count > 0:
+        if len(users) > 0:
             return True
         return False
 
@@ -200,7 +199,7 @@ class FaceRecognition:
         :return: True if the user is authenticated, False otherwise.
         """
 
-        if not self.__conn or self.user_exists(email):
+        if not self.__conn or not self.user_exists(email):
             return False
         user_label = self.__get_label(email)
 

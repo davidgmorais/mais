@@ -4,3 +4,4 @@ numpy~=1.19.5
 dlib~=19.22.1
 imutils~=0.5.4
 mysql-connector-python~=8.0.22
+cryptography~=2.1.4

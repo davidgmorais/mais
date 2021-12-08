@@ -6,7 +6,8 @@ CREATE TABLE mais.USER(
 
 CREATE TABLE mais.IMAGE(
     id INT AUTO_INCREMENT PRIMARY KEY,
-    image BLOB NOT NULL,
+    image VARCHAR(50) NOT NULL,
+    mac BLOB NOT NULL,
     user_id int NOT NULL,
 
     FOREIGN KEY (user_id) REFERENCES USER(id)

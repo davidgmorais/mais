@@ -1,5 +1,4 @@
 import sys
-import base64
 import getpass
 import cv2
 
@@ -56,14 +55,14 @@ def detect_from_cam():
 
 def register():
     """
-    Function used to manually test the registration of an user
+    Function used to manually test the registration of a user
 
-    Register an user by asking for input of an email and password. After making sure that a user with the same email
+    Register a user by asking for input of an email and password. After making sure that a user with the same email
     does not exist, opens the camera and, using the FaceDetection modules, collects the sample size required from the
-    FaceRecognition module consisting on greyscale images in regards of the region of interest od the user's face,
-    encoding them to base64 and appending them to the 'collected' array If the number of faces in a frame varies, then
-    the collection will start over. Once sampling is completed, the video capture is released and the method register
-    of FaceRegister is called to register the user.
+    FaceRecognition module consisting on greyscale images in regard to the region of interest od the user's face,
+    converting them to a byte string and appending them to the 'collected' array If the number of faces in a frame
+    varies, then the collection will start over. Once sampling is completed, the video capture is released and the
+    method register of FaceRegister is called to register the user.
     """
 
     face_recognition = FaceRecognition()
@@ -100,10 +99,8 @@ def register():
 
         elif len(roi_gray) > 0:
             roi_bytes = cv2.imencode('.jpg', roi_gray[0])[1].tobytes()  # Numpy one-dim array representative of the img
-            roi_b64 = base64.b64encode(roi_bytes)
-            collected.append(roi_b64)
+            collected.append(roi_bytes)
 
-            # if len(collected) == face_recognition.sample_size:
             if len(collected) == face_recognition.sample_size:
                 print("Collection completing.")
                 break
@@ -117,16 +114,17 @@ def register():
 
 def auth():
     """
-    Function used to manually test the authentication of an user
+    Function used to manually test the authentication of a user
 
-    Authenticates an user by first creating a FaceRecognition object and asking the user for its email. After that it
+    Authenticates a user by first creating a FaceRecognition object and asking the user for its email. After that it
     start the video capture from the laptop camera. For every frame detects the face on screen using the  detect method
     from the FaceDetection module, extracts the greyscale region of interest (if there is one) and uses it to
     authenticate the user, using the authenticate method of the FaceRecognition. Closes the video capture from the
     live camera and the connection to the FaceRecognition.
     """
 
-    face_recognition = FaceRecognition(confidence=60.0)
+    face_recognition = FaceRecognition(confidence=70.0)
+
     email = input("E-mail: ")
     tries = 0
 
@@ -169,7 +167,7 @@ def main(_type):
     """
     Function used to test the functionalities while developing
 
-    :param _type: action to be executed, can wither be 'register' or 'auth'
+    :param _type: action to be executed, can either be 'register' or 'auth'
     :return:
     """
 

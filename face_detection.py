@@ -71,7 +71,6 @@ class FaceDetector:
         # check variation of number of faces in the frame
         if self.faces_on_frame != len(faces):
             self.faces_on_frame = len(faces)
-            print(f"Faces on the frame: {self.faces_on_frame}")
             self.total = 0
 
         roi_gray = []

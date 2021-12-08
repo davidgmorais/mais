@@ -6,6 +6,8 @@ import cv2
 from face_detection import FaceDetector
 from face_recognition import FaceRecognition
 
+MAX_TRIES = 10
+
 
 def detect_from_image(filename):
     """
@@ -126,6 +128,7 @@ def auth():
 
     face_recognition = FaceRecognition(confidence=60.0)
     email = input("E-mail: ")
+    tries = 0
 
     cap = cv2.VideoCapture(0)
     face_detector = FaceDetector(0.3, 2)
@@ -151,6 +154,11 @@ def auth():
                 print("User authenticated, welcome!")
                 is_authenticated = True
                 break
+
+        tries += 1
+        if tries >= MAX_TRIES:
+            print("\nFace authentication failed.")
+            break
 
     cap.release()
     cv2.destroyAllWindows()

@@ -123,7 +123,7 @@ def auth():
     live camera and the connection to the FaceRecognition.
     """
 
-    face_recognition = FaceRecognition(confidence=70.0)
+    face_recognition = FaceRecognition(confidence=65.0)
 
     email = input("E-mail: ")
     tries = 0

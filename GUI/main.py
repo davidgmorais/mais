@@ -10,7 +10,7 @@ class GUI:
         self.authentication = "Authentication"      #Variables that stores the name of buttons on the first display
 
         self.main_display_layout = [[sg.Text('WHAT DO YOU WANT TO DO ?')],
-                       [sg.Button(self.registration), sg.Button(self.authentication)]]
+                                    [sg.Button(self.registration), sg.Button(self.authentication)]]
         self.registration_layout = [[sg.Text('REGISTRATION', justification='center')],
                                     [sg.Text('Name', size=(15, 1)), sg.InputText()],
                                     [sg.Text('Email', size=(15, 1)), sg.InputText()],

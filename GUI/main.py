@@ -2,6 +2,8 @@
 import PySimpleGUI as sg
 import cv2
 
+MAX_TRIES = 5
+
 class GUI:
 
     # Initialization function, main window
@@ -11,6 +13,7 @@ class GUI:
         self.face_detector = face_detector
         self.face_recognition = face_recognition
         self.register_values = None
+        self.authentication_values = None
         try:
             # Buttons name's
             # ------------------------
@@ -162,7 +165,7 @@ class GUI:
         # ------------------------
         try:
             self.layout = [[sg.Text('CONFIRMATION', justification='center')],
-                           [sg.Image(key='picture_authentication'), sg.Text('Email', size=(15,1)), sg.InputText(), sg.Submit()]]
+                           [sg.Text('Email', size=(15,1)), sg.InputText(key='email_authentication'), sg.Submit()]]
             window = sg.Window("AUTHENTICATION", self.layout, size=(720, 380), element_justification='center')
             while True:
                 event, values = window.read()
@@ -170,6 +173,7 @@ class GUI:
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
                 if event == sg.Submit() or event == 'Submit':
+                    self.authentication_values = values
                     window.close()
                     GUI.win_authentication_face(self)
         except Exception as err:
@@ -181,10 +185,13 @@ class GUI:
     def win_authentication_face(self):
         # Interface layout
         # ------------------------
+        tries = 0
         try:
             self.layout = [[sg.Image(key="auth_face")],
                            [sg.Cancel()]]
             window = sg.Window("FACE MAIS", self.layout, size=(720, 380), element_justification='center')
+            self.capture_data = cv2.VideoCapture(0)  # Video capture (frames)
+
         except Exception as err:
             sg.popup()
             window.close()
@@ -193,9 +200,50 @@ class GUI:
             print(event, values)  # Usunąć na końcu tę linijkę
             if event == sg.WIN_CLOSED or event == 'Exit':
                 break
+
             if event == sg.Cancel() or event == 'Cancel':
+                if self.capture_data:
+                    self.capture_data.release()
+                    self.capture_data = None
                 window.close()
                 GUI.win_authentication(self)
+
+            if self.capture_data:
+                ret, img = self.capture_data.read()
+                if img is not None:
+                    img, roi_gray, _ = self.face_detector.detect(img)
+                    height = 240
+                    width = int(img.shape[1] / (img.shape[0] / height))
+                    img = cv2.resize(img, (width, height), interpolation=cv2.INTER_LINEAR)
+                    img_bytes = cv2.imencode(".png", img)[1].tobytes()
+                    window['auth_face'].update(data=img_bytes)
+
+                    if len(roi_gray) == 0:
+                        continue
+
+                    for roi in roi_gray:
+                        if self.face_recognition.authenticate(self.authentication_values['email_authentication'], roi):
+                            if self.capture_data:
+                                self.capture_data.release()
+                                self.capture_data = None
+                            print("User authenticated, welcome!")
+                            window.close()
+                            GUI.win_authentication_success(self)
+
+                    tries += 1
+                    if tries >= MAX_TRIES:
+                        if self.capture_data:
+                            self.capture_data.release()
+                            self.capture_data = None
+                        print("\nFace authentication failed.")
+                        window.close()
+                        GUI.win_authentication_fail(self)
+
+        if self.capture_data:
+            self.capture_data.release()
+            self.capture_data = None
+
+
 
     # Successfull confirmation of authentication process window
     # ------------------------
@@ -205,6 +253,12 @@ class GUI:
         try:
             self.layout = [[sg.Text('SUCCESS! +YOU+ ARE AUTHENTICATED')]]
             window = sg.Window("SUCCESSFULL AUTHENTICATION", self.layout, size=(720, 380), element_justification='center')
+
+            while True:
+                event, values = window.read()
+                if event == sg.WIN_CLOSED or event == 'Exit':
+                    window.close()
+
         except Exception as err:
             sg.popup()
             window.close()
@@ -217,9 +271,16 @@ class GUI:
         try:
             self.layout = [[sg.Text('FAILED TO AUTHENTICATE USER')]]
             window = sg.Window("FAILED TO AUTHENTICATE USER", self.layout, size=(720, 380), element_justification='center')
+
+            while True:
+                event, values = window.read()
+                if event == sg.WIN_CLOSED or event == 'Exit':
+                    break
+
         except Exception as err:
             sg.popup()
             window.close()
+
 
 if __name__ == "__main__":
     GUI()

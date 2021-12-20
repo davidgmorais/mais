@@ -64,7 +64,7 @@ class GUI:
                     GUI.win_registration_picture(self)
                 if event == sg.Cancel() or event == 'Cancel':
                     window.close()
-                    GUI.__init__(self)
+                    GUI.__init__(self, self.face_detector, self.face_recognition)
 
         except Exception as err:
             sg.popup()
@@ -170,10 +170,32 @@ class GUI:
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
                 if event == sg.Submit() or event == 'Submit':
-                    break #add here content
+                    window.close()
+                    GUI.win_authentication_face(self)
         except Exception as err:
             sg.popup()
             window.close()
+
+    # Authentication window
+    # ------------------------
+    def win_authentication_face(self):
+        # Interface layout
+        # ------------------------
+        try:
+            self.layout = [[sg.Image(key="auth_face")],
+                           [sg.Cancel()]]
+            window = sg.Window("FACE MAIS", self.layout, size=(720, 380), element_justification='center')
+        except Exception as err:
+            sg.popup()
+            window.close()
+        while True:
+            event, values = window.read(timeout=20)
+            print(event, values)  # Usunąć na końcu tę linijkę
+            if event == sg.WIN_CLOSED or event == 'Exit':
+                break
+            if event == sg.Cancel() or event == 'Cancel':
+                window.close()
+                GUI.win_authentication(self)
 
     # Successfull confirmation of authentication process window
     # ------------------------

@@ -20,7 +20,7 @@ config = {
     'database': 'mais'
 }
 # docker run --name=mais-db -p 3306:3306 -e MYSQL_ROOT_PASSWORD=_secret -e MYSQL_USER=admin -e MYSQL_PASSWORD=pass
-# -d mysql/mysql-server:latest
+# -e MYSQL_DATABASE=mais -d mysql/mysql-server:latest
 
 
 def bytes_to_opencv(im_bytes):

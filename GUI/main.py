@@ -5,10 +5,12 @@ import cv2
 class GUI:
 
     # Initialization function, main window
-    def __init__(self, face_detector):
+    def __init__(self, face_detector, face_recognition):
 
         self.capture_data = None
         self.face_detector = face_detector
+        self.face_recognition = face_recognition
+        self.register_values = None
         try:
             # Buttons name's
             # ------------------------
@@ -57,6 +59,7 @@ class GUI:
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
                 if event == sg.Submit() or event == 'Submit':
+                    self.register_values = values
                     window.close()
                     GUI.win_registration_picture(self)
                 if event == sg.Cancel() or event == 'Cancel':
@@ -83,7 +86,7 @@ class GUI:
                     break
                 if event == sg.Button('Ok') or event == 'Ok':
                     window.close()
-                    GUI.__init__(self)
+                    GUI.__init__(self, self.face_detector, self.face_recognition)
         except Exception as err:
             sg.popup()
             window.close()
@@ -94,10 +97,11 @@ class GUI:
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Image(key='picture_registration')],
+            self.layout = [[sg.Image("", key='picture_registration')],
                            [sg.Button('Close')]]
             window = sg.Window('IMAGE', self.layout, size=(720,380), element_justification='center')
             self.capture_data = cv2.VideoCapture(0)  # Video capture (frames)
+            collected = []
 
             while True:
                 event, values = window.read(timeout=20)
@@ -105,6 +109,9 @@ class GUI:
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
                 if event == sg.Button('Close') or event == 'Close':
+                    if self.capture_data:
+                        self.capture_data.release()
+                        self.capture_data = None
                     window.close()
                     GUI.win_registration(self)
 
@@ -113,10 +120,36 @@ class GUI:
                     if img is not None:
                         img, roi_gray, _ = self.face_detector.detect(img)
                         height = 240
-                        width = int(img.shape[1] / (img.shape[0])/height)
+                        width = int(img.shape[1] / (img.shape[0]/height))
                         img = cv2.resize(img, (width, height), interpolation=cv2.INTER_LINEAR)
                         img_bytes = cv2.imencode(".png", img)[1].tobytes()
                         window['picture_registration'].update(data=img_bytes)
+
+                        if len(roi_gray) != 1:
+                            if len(collected) > 0:
+                                print("Starting over, make sure you are the only person one in frame")
+                                collected = []
+                            continue
+
+                        elif len(roi_gray) > 0:
+                            roi_bytes = cv2.imencode('.jpg', roi_gray[0])[
+                                1].tobytes()  # Numpy one-dim array representative of the img
+                            collected.append(roi_bytes)
+
+                            if len(collected) == self.face_recognition.sample_size:
+                                print("Collection completing.")
+                                print(type(self.register_values), self.register_values)
+                                email = self.register_values['email_registration']
+                                password = self.register_values['password_registration']
+                                print(email, password)
+                                if self.face_recognition.register(email, password, collected):
+                                    print("User registered with success")
+                                    window.close()
+                                    GUI.win_registration_conf(self)
+
+            if self.capture_data:
+                self.capture_data.release()
+                self.capture_data = None
 
         except Exception as err:
             sg.popup()

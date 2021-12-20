@@ -178,7 +178,8 @@ def main(_type):
         auth()
     elif _type == 'gui':
         face_detector = FaceDetector(0.3, 2)
-        GUI(face_detector)
+        face_recognition = FaceRecognition(confidence=65.0)
+        GUI(face_detector, face_recognition)
     else:
         print("[ERROR] Unknown action.")
 

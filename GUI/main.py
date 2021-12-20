@@ -5,8 +5,10 @@ import cv2
 class GUI:
 
     # Initialization function, main window
-    def __init__(self):
+    def __init__(self, face_detector):
 
+        self.capture_data = None
+        self.face_detector = face_detector
         try:
             # Buttons name's
             # ------------------------
@@ -39,7 +41,6 @@ class GUI:
     # Registration window
     # ------------------------
     def win_registration(self):
-        capture_data = None
         try:
             # Interface layout
             # ------------------------
@@ -56,9 +57,8 @@ class GUI:
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
                 if event == sg.Submit() or event == 'Submit':
-                    capture_data = cv2.VideoCapture(0) # Video capture (frames)
                     window.close()
-                    GUI.win_registration_conf(self)
+                    GUI.win_registration_picture(self)
                 if event == sg.Cancel() or event == 'Cancel':
                     window.close()
                     GUI.__init__(self)
@@ -90,20 +90,34 @@ class GUI:
 
     # Confiramtion of registration window
     # ------------------------
-    def win_registration_conf(self):
+    def win_registration_picture(self):
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Image()],
+            self.layout = [[sg.Image(key='picture_registration')],
                            [sg.Button('Close')]]
             window = sg.Window('IMAGE', self.layout, size=(720,380), element_justification='center')
+            self.capture_data = cv2.VideoCapture(0)  # Video capture (frames)
+
             while True:
                 event, values = window.read(timeout=20)
                 print(event, values)
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
-                if event == sg.Button('Close'):
+                if event == sg.Button('Close') or event == 'Close':
                     window.close()
+                    GUI.win_registration(self)
+
+                if self.capture_data:
+                    ret, img = self.capture_data.read()
+                    if img is not None:
+                        img, roi_gray, _ = self.face_detector.detect(img)
+                        height = 240
+                        width = int(img.shape[1] / (img.shape[0])/height)
+                        img = cv2.resize(img, (width, height), interpolation=cv2.INTER_LINEAR)
+                        img_bytes = cv2.imencode(".png", img)[1].tobytes()
+                        window['picture_registration'].update(data=img_bytes)
+
         except Exception as err:
             sg.popup()
             window.close()

@@ -2,6 +2,7 @@ import sys
 import getpass
 import cv2
 
+from GUI.main import GUI
 from face_detection import FaceDetector
 from face_recognition import FaceRecognition
 
@@ -175,9 +176,16 @@ def main(_type):
         register()
     elif _type == 'auth':
         auth()
+    elif _type == 'gui':
+        face_detector = FaceDetector(0.3, 2)
+        GUI(face_detector)
     else:
         print("[ERROR] Unknown action.")
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    if len(sys.argv) <= 1:
+        _type = 'gui'
+    else:
+        _type = sys.argv[1]
+    main(_type)

@@ -44,9 +44,10 @@ class GUI:
             # Interface layout
             # ------------------------
             self.layout = [[sg.Text('REGISTRATION', justification='center')],
-                            [sg.Text('Name', size=(15, 1)), sg.InputText()],
-                            [sg.Text('Email', size=(15, 1)), sg.InputText()],
-                            [sg.Text('Password', size=(15, 1)), sg.InputText(password_char="*")],
+                            [sg.Text('Name', size=(15, 1)), sg.InputText(key='name_registration')],
+                            [sg.Text('Email', size=(15, 1)), sg.InputText(key='email_registration')],
+                            [sg.Text('Password', size=(15, 1)), sg.InputText(password_char="*", key='password_registration')],
+                            [sg.Text('Write again password: '), sg.InputText(key='reenter_password', password_char='*')],
                             [sg.Submit(), sg.Cancel()]]
             window = sg.Window("REGISTRATION", self.layout, size=(720, 380), element_justification='center')
             while True:
@@ -73,7 +74,7 @@ class GUI:
         # ------------------------
         try:
             self.layout = [[sg.Text('CONFIRMATION', justification='center')],
-                           [sg.Button('Ok')]]
+                           [sg.Button('Ok')],]
             window = sg.Window("CONFIRMATION", self.layout, size=(720, 380), element_justification='center')
             while True:
                 event, values = window.read()
@@ -83,6 +84,26 @@ class GUI:
                 if event == sg.Button('Ok') or event == 'Ok':
                     window.close()
                     GUI.__init__(self)
+        except Exception as err:
+            sg.popup()
+            window.close()
+
+    # Confiramtion of registration window
+    # ------------------------
+    def win_registration_conf(self):
+        # Interface layout
+        # ------------------------
+        try:
+            self.layout = [[sg.Image()],
+                           [sg.Button('Close')]]
+            window = sg.Window('IMAGE', self.layout, size=(720,380), element_justification='center')
+            while True:
+                event, values = window.read(timeout=20)
+                print(event, values)
+                if event == sg.WIN_CLOSED or event == 'Exit':
+                    break
+                if event == sg.Button('Close'):
+                    window.close()
         except Exception as err:
             sg.popup()
             window.close()

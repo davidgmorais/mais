@@ -136,7 +136,6 @@ class FaceRecognition:
         process, using AES in CBC mode (once that with ECB the encryption image resembles the original) and PKCS#7
         padding, and then storing the resulting file in an appropriate directory on the filesystem. Other than that,
         it also computes the MAC of the original image for integrity check on the decryption.
-        the image's filename.
 
         :param face: Byte array representing the face to be stored.
         :param user: User id (label) to whom the face belongs to.

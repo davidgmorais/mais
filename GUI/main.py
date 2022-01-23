@@ -79,7 +79,7 @@ class GUI:
                     GUI.__init__(self, self.face_detector, self.face_recognition, self.voice_authentication)
 
         except Exception as err:
-            sg.popup()
+            sg.popup() #nie
             window.close()
 
     # Confiramtion of registration window
@@ -100,7 +100,7 @@ class GUI:
                     window.close()
                     GUI.win_registration_voice(self)
         except Exception as err:
-            sg.popup()
+            sg.popup() #nie
             window.close()
 
     # Confiramtion of registration window
@@ -167,7 +167,7 @@ class GUI:
                 self.capture_data = None
 
         except Exception as err:
-            sg.popup()
+            sg.popup() #nie
             window.close()
 
     # ############################################ #

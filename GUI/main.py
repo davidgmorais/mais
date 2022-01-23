@@ -40,7 +40,7 @@ class GUI:
                     GUI.win_authentication(self)
 
         except Exception as err:
-            sg.popup()
+            sg.popup() #nie
             window.close()
 
     # Registration window
@@ -70,7 +70,7 @@ class GUI:
                     GUI.__init__(self, self.face_detector, self.face_recognition)
 
         except Exception as err:
-            sg.popup()
+            sg.popup() #nie
             window.close()
 
     # Confiramtion of registration window
@@ -91,7 +91,7 @@ class GUI:
                     window.close()
                     GUI.__init__(self, self.face_detector, self.face_recognition)
         except Exception as err:
-            sg.popup()
+            sg.popup() #nie
             window.close()
 
     # Confiramtion of registration window
@@ -155,7 +155,7 @@ class GUI:
                 self.capture_data = None
 
         except Exception as err:
-            sg.popup()
+            sg.popup() #nie
             window.close()
 
     # Authentication window
@@ -195,6 +195,7 @@ class GUI:
         except Exception as err:
             sg.popup()
             window.close()
+
         while True:
             event, values = window.read(timeout=20)
             print(event, values)  # Usunąć na końcu tę linijkę
@@ -257,7 +258,7 @@ class GUI:
             while True:
                 event, values = window.read()
                 if event == sg.WIN_CLOSED or event == 'Exit':
-                    window.close()
+                    break
 
         except Exception as err:
             sg.popup()

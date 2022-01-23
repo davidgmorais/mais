@@ -257,7 +257,7 @@ class GUI:
             while True:
                 event, values = window.read()
                 if event == sg.WIN_CLOSED or event == 'Exit':
-                    window.close()
+                    break
 
         except Exception as err:
             sg.popup()

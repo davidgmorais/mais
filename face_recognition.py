@@ -278,8 +278,8 @@ class FaceRecognition:
         values = [self.__encrypt_and_store(face, user_id) + (user_id, ) for face in collected_images]
 
         cursor.executemany(image_query, values)
-        self.__conn.commit()
         cursor.close()
+        self.__conn.commit()
 
         self.__recognizer.update(
             [bytes_to_opencv(face) for face in collected_images],

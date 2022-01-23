@@ -29,12 +29,12 @@ class VoiceAuthentication:
         self.__conn = None
         self.log_likelihood_threshold = confidence - 100
         self.N = 2  # used for delta calculations in feature extraction
-        self.passphrase_length = 3
+        self.passphrase_length = 2
 
         self.__connect()
 
         # directory to save encrypted data
-        self.__wav_dir = "../data/"
+        self.__wav_dir = "data/"
         if not os.path.exists(self.__wav_dir):
             os.mkdir(self.__wav_dir)
         self.__wav_dir += "wav/"
@@ -156,6 +156,7 @@ class VoiceAuthentication:
         """
 
         _dir = self.__wav_dir + str(user) + "/"
+        print(_dir)
         if not os.path.exists(_dir):
             return None
         _tmp_dir = self.__wav_dir + ".tmp/"
@@ -265,6 +266,9 @@ class VoiceAuthentication:
         :param audio: audio sample from where to recognize words spoken and validate it against the passphrase param.
         :return: True if the recognized words match the passphrase, False otherwise.
         """
+        print(self.__recognizer)
+        if not self.__recognizer:
+            self.__recognizer = Recognizer()
 
         try:
             recognized_passphrase = self.__recognizer.recognize_google(audio)
@@ -310,7 +314,11 @@ class VoiceAuthentication:
         with mic as source:
             self.__recognizer.adjust_for_ambient_noise(source, duration=0.8)
             print("[LOG] Adjustments made.")
-            audio = self.__recognizer.listen(source)
+            try:
+                audio = self.__recognizer.listen(source, timeout=2)
+            except speech_recognition.WaitTimeoutError:
+                return None
+
             print("[LOG] Finished listening.")
 
         return audio
@@ -324,11 +332,13 @@ class VoiceAuthentication:
         :return: True if the user already exists, False if it does not. Returns None if a connection to the database
         is not established.
         """
+        self.__conn.close()
+        self.__connect()
         if not self.__conn:
             return None
         cursor = self.__conn.cursor()
 
-        query = "SELECT email FROM USER WHERE email = %s;"
+        query = f"SELECT email FROM USER WHERE email = %s;"
         cursor.execute(query, [email])
         users = cursor.fetchall()
         cursor.close()
@@ -352,13 +362,14 @@ class VoiceAuthentication:
         """
 
         if not self.__conn or not self.user_exists(email):
+            print("[DEBUG] USER EXISTS?", self.user_exists(email))
             return False
 
         cursor = self.__conn.cursor()
         cursor.execute("SELECT id FROM USER WHERE EMAIL = %s", [email])
         user_id = cursor.fetchone()[0]
         cursor.reset()
-
+        print("[DEBUG] USER ID:", user_id)
         passphrase_query = "UPDATE USER SET passphrase = %s WHERE id = %s;"
         cursor.execute(passphrase_query, [passphrase, user_id])
 

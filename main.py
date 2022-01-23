@@ -5,6 +5,7 @@ import cv2
 from GUI.main import GUI
 from face_detection import FaceDetector
 from face_recognition import FaceRecognition
+from voice_authentication import VoiceAuthentication
 
 MAX_TRIES = 10
 
@@ -179,7 +180,8 @@ def main(_type):
     elif _type == 'gui':
         face_detector = FaceDetector(0.3, 2)
         face_recognition = FaceRecognition(confidence=65.0)
-        GUI(face_detector, face_recognition)
+        voice_auth = VoiceAuthentication(confidence=90)
+        GUI(face_detector, face_recognition, voice_auth)
     else:
         print("[ERROR] Unknown action.")
 

@@ -1,4 +1,5 @@
 import os
+import shutil
 import uuid
 
 import cryptography.exceptions
@@ -7,7 +8,6 @@ import numpy as np
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding, hmac, hashes
 from cryptography.hazmat.backends import default_backend
-
 
 SAMPLE_SIZE = 30
 
@@ -42,7 +42,7 @@ class FaceRecognition:
         self.__recognizer = cv2.face.LBPHFaceRecognizer_create()
         self.__db = database
         self.sample_size = SAMPLE_SIZE
-        self.confidence = confidence             # authentication confidence (false match rate / false non match rate)
+        self.confidence = confidence  # authentication confidence (false match rate / false non match rate)
 
         # directory to save encrypted data
         self.__data_dir = "data/"
@@ -204,12 +204,19 @@ class FaceRecognition:
         if not self.__db or self.user_exists(email):
             return False
 
-        self.__db.add_user(email, password)
+        if not self.__db.add_user(email, password):
+            return False
         user_id = self.__db.get_user_id_by_email(email)
 
         # encrypt and store collected_images and their respective mac
-        values = [self.__encrypt_and_store(face, user_id) + (user_id, ) for face in collected_images]
-        self.__db.add_images(values)
+        values = [self.__encrypt_and_store(face, user_id) + (user_id,) for face in collected_images]
+        if not self.__db.add_images(values):
+            # remove user from db
+            self.__db.remove_user(user_id)
+            # remove files from filesystem
+            _dir = self.__data_dir + str(user_id) + "/"
+            shutil.rmtree(_dir)
+            return False
 
         self.__recognizer.update(
             [bytes_to_opencv(face) for face in collected_images],
@@ -240,7 +247,21 @@ class FaceRecognition:
         if label != user_label:
             return False
 
-        if 100-confidence >= self.confidence:
+        if 100 - confidence >= self.confidence:
             return True
 
         return False
+
+    def remove_user(self, email):
+        if not self.__db.user_exists_by_email(email):
+            return
+
+        user_id = self.__db.get_user_id_by_email(email)
+        user_images = self.__db.get_images_by_user(user_id)
+
+        if user_images and len(user_images) > 0:
+            self.__db.remove_images_by_user_id(user_id)
+            # remove files from filesystem
+            _dir = self.__data_dir + str(user_id) + "/"
+            shutil.rmtree(_dir)
+        self.__db.remove_user(user_id)

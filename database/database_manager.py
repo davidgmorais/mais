@@ -70,12 +70,31 @@ class DatabaseManager:
     def add_user(self, email, password):
         if not self.__conn:
             return None
+        try:
+            query = "INSERT INTO USER (email, password) VALUES (%s, %s)"
+            cursor = self.__conn.cursor()
+            password = hashlib.sha256(password.encode(encoding='utf-8')).hexdigest()
+            cursor.execute(query, [email, password])
+            cursor.close()
+            self.__conn.commit()
+        except mysql.connector.Error as err:
+            print(err)
+            return False
+        return True
 
-        user_query = "INSERT INTO USER (email, password) VALUES (%s, %s)"
-        cursor = self.__conn.cursor()
-        password = hashlib.sha256(password.encode(encoding='utf-8')).hexdigest()
-        cursor.execute(user_query, [email, password])
-        cursor.reset()
+    def remove_user(self, user_id):
+        if not self.__conn:
+            return None
+        try:
+            query = "DELETE FROM USER WHERE id = %s"
+            cursor = self.__conn.cursor()
+            cursor.execute(query, [user_id])
+            cursor.close()
+            self.__conn.commit()
+        except mysql.connector.Error as err:
+            print(err)
+            return False
+        return True
 
     def get_user_passphrase_by_email(self, email):
         if not self.__conn:
@@ -117,11 +136,30 @@ class DatabaseManager:
         if not self.__conn:
             return None
 
-        query = "INSERT INTO IMAGE (image, mac, user_id) VALUES (%s, %s, %s)"
-        cursor = self.__conn.cursor()
-        cursor.executemany(query, images)
-        cursor.close()
-        self.__conn.commit()
+        try:
+            query = "INSERT INTO IMAGE (image, mac, user_id) VALUES (%s, %s, %s)"
+            cursor = self.__conn.cursor()
+            cursor.executemany(query, images)
+            cursor.close()
+            self.__conn.commit()
+        except mysql.connector.Error as err:
+            print(err)
+            return False
+        return True
+
+    def remove_images_by_user_id(self, user_id):
+        if not self.__conn:
+            return None
+        try:
+            query = "DELETE FROM IMAGE WHERE user_id = %s"
+            cursor = self.__conn.cursor()
+            cursor.execute(query, [user_id])
+            cursor.close()
+            self.__conn.commit()
+        except mysql.connector.Error as err:
+            print(err)
+            return False
+        return True
 
     # wav methods
     def get_wavs_by_user(self, user_id):
@@ -138,12 +176,16 @@ class DatabaseManager:
     def add_waves(self, samples):
         if not self.__conn:
             return None
-
-        query = "INSERT INTO WAV (voice, mac, user_id) VALUE (%s, %s, %s);"
-        cursor = self.__conn.cursor()
-        cursor.executemany(query, samples)
-        cursor.close()
-        self.__conn.commit()
+        try:
+            query = "INSERT INTO WAV (voice, mac, user_id) VALUE (%s, %s, %s);"
+            cursor = self.__conn.cursor()
+            cursor.executemany(query, samples)
+            cursor.close()
+            self.__conn.commit()
+        except mysql.connector.Error as err:
+            print(err)
+            return False
+        return True
 
     # utils methods
     def close(self):

@@ -1,4 +1,5 @@
 import os
+import shutil
 import uuid
 import cryptography.exceptions
 import numpy as np
@@ -309,7 +310,11 @@ class VoiceAuthentication:
 
         # encrypt and store
         samples = [self.__encrypt_and_store(audio, user_id) for audio in audio_samples]
-        self.__db.add_waves([_sample + (user_id,) for _sample in samples])
+        if not self.__db.add_waves([_sample + (user_id,) for _sample in samples]):
+            # remove wav
+            _dir = self.__wav_dir + str(user_id) + "/"
+            shutil.rmtree(_dir)
+            return False
 
         self.__update_model_collection(samples, user_id)
         return True

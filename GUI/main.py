@@ -9,6 +9,7 @@ EMAIL_USAGE_WARNING = "This email address is already in use"
 PASSWORD_MATCH_WARNING = "Passwords don't match"
 INVALID_PASSWORD_WARNING = "Password must contain 8 characters"
 INVALID_EMAIL_WARNING = "Invalid email address"
+IMAGE_COLLECTION_WARNING = "Image collection was interrupted:\n Make sure you are the only person one in frame"
 
 
 class GUI:
@@ -23,6 +24,7 @@ class GUI:
         self.register_values = None
         self.authentication_values = None
         self.assets_path = os.path.dirname(os.path.abspath(__file__)) + "/assets/"
+        self.collected_images = []
 
         try:
             # Buttons name's
@@ -53,30 +55,31 @@ class GUI:
             sg.popup(err)
             window.close()
 
-    # Registration window
+    # Registration from window
     # ------------------------
     def win_registration(self):
         valid_name, valid_email, valid_password, valid_reenter = False, False, False, False
         try:
             # Interface layout
             # ------------------------
-            self.layout = [[sg.Text('Please fill in the following form:', justification='center', pad=((0, 0), (20, 30)))],
+            self.layout = [
+                [sg.Text('Please fill in the following form:', justification='center', pad=((0, 0), (20, 30)))],
 
-                           [sg.Text('Name', size=(15, 1)), sg.InputText(key='name_registration')],
-                           [sg.Text("", key="name_warning", pad=((0, 0), (0, 10)), text_color=sg.rgb(255, 0, 0))],
+                [sg.Text('Name', size=(15, 1)), sg.InputText(key='name_registration')],
+                [sg.Text("", key="name_warning", pad=((0, 0), (0, 10)), text_color=sg.rgb(255, 0, 0))],
 
-                           [sg.Text('Email', size=(15, 1)), sg.InputText(key='email_registration')],
-                           [sg.Text("", key="email_warning", pad=((0, 0), (0, 10)), text_color=sg.rgb(255, 0, 0))],
+                [sg.Text('Email', size=(15, 1)), sg.InputText(key='email_registration')],
+                [sg.Text("", key="email_warning", pad=((0, 0), (0, 10)), text_color=sg.rgb(255, 0, 0))],
 
-                           [sg.Text('Password', size=(15, 1)),
-                            sg.InputText(password_char="*", key='password_registration')],
-                           [sg.Text("", key="password_warning", pad=((0, 0), (0, 10)), text_color=sg.rgb(255, 0, 0))],
+                [sg.Text('Password', size=(15, 1)),
+                 sg.InputText(password_char="*", key='password_registration')],
+                [sg.Text("", key="password_warning", pad=((0, 0), (0, 10)), text_color=sg.rgb(255, 0, 0))],
 
-                           [sg.Text('Password again', size=(15, 1)),
-                            sg.InputText(key='reenter_password', password_char='*')],
-                           [sg.Text("", key="matching_warning", pad=((0, 0), (0, 10)), text_color=sg.rgb(255, 0, 0))],
+                [sg.Text('Password again', size=(15, 1)),
+                 sg.InputText(key='reenter_password', password_char='*')],
+                [sg.Text("", key="matching_warning", pad=((0, 0), (0, 10)), text_color=sg.rgb(255, 0, 0))],
 
-                           [sg.Submit(), sg.Cancel()]]
+                [sg.Submit(), sg.Cancel()]]
             window = sg.Window("REGISTRATION", self.layout, size=(720, 380), element_justification='center')
             while True:
                 event, values = window.read()
@@ -99,7 +102,8 @@ class GUI:
                         values['email_registration'] = values['email_registration'].lower()
 
                         # invalid email verification:
-                        if "@" not in values.get("email_registration") or "." not in values.get("email_registration").split("@")[-1]:
+                        if "@" not in values.get("email_registration") or "." not in \
+                                values.get("email_registration").split("@")[-1]:
                             window["email_warning"].update(value=INVALID_EMAIL_WARNING)
                             valid_email = False
                         else:
@@ -156,42 +160,57 @@ class GUI:
             sg.popup(err)  # nie
             window.close()
 
-    # Confiramtion of registration window
+    # Confirmation of face collection window
     # ------------------------
-    def win_registration_conf(self):
+    def win_registration_face_conf(self):
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Text('CONFIRMATION', justification='center')],
-                           [sg.Button('Ok')], ]
-            window = sg.Window("CONFIRMATION", self.layout, size=(720, 380), element_justification='center')
+            if self.register_values and self.register_values.get("email_registration") and \
+                    self.register_values.get("password_registration") and self.collected_images and\
+                    len(self.collected_images) == self.face_recognition.sample_size:
+                self.layout = [[sg.Text('Image collection was successful', pad=((0, 0), (120, 0)), font=(None, 12))],
+                               [sg.Text("Click next to start voice registration", pad=((0, 0), (0, 20)))],
+                               [sg.Button("Next", key="next_btn")]]
+            else:
+                self.layout = [[sg.Text('Something went wrong.', pad=((0, 0), (120, 0)), font=(None, 12))],
+                               [sg.Text("Click Cancel to go to back the home page and try again", pad=((0, 0), (0, 20)))],
+                               [sg.Cancel()]]
+            window = sg.Window("FACE COLLECTION COMPLETED", self.layout, size=(720, 380),
+                               element_justification='center')
             while True:
                 event, values = window.read()
-                print(event, values)  # Usunąć na końcu tę linijkę
+
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
-                if event == sg.Button('Ok') or event == 'Ok':
+                if event == sg.Cancel() or event == 'Cancel':
+                    window.close()
+                    GUI.__init__(self, self.face_detector, self.face_recognition, self.voice_authentication)
+                if event == sg.Button('Next') or event == 'next_btn':
                     window.close()
                     GUI.win_registration_voice(self)
+
         except Exception as err:
-            sg.popup()  # nie
+            sg.popup(err)  # nie
             window.close()
 
-    # Confiramtion of registration window
+    # Image collection for registration window
     # ------------------------
     def win_registration_picture(self):
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Image("", key='picture_registration')],
+            self.layout = [[sg.Text("Please, look into the camera")],
+                           [sg.Image("", key='picture_registration')],
+                           [sg.Text("\n", key="image_collection_warning", text_color=sg.rgb(255, 0, 0),
+                                    justification="center")],
                            [sg.Button('Close')]]
             window = sg.Window('IMAGE', self.layout, size=(720, 380), element_justification='center')
-            # self.capture_data = cv2.VideoCapture(0)  # Video capture (frames)
+            self.capture_data = cv2.VideoCapture(0)  # Video capture (frames)
             collected = []
 
             while True:
                 event, values = window.read(timeout=20)
-                print(event, values)
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
                 if event == sg.Button('Close') or event == 'Close':
@@ -213,6 +232,7 @@ class GUI:
 
                         if len(roi_gray) != 1:
                             if len(collected) > 0:
+                                window["image_collection_warning"].update(value=IMAGE_COLLECTION_WARNING)
                                 print("Starting over, make sure you are the only person one in frame")
                                 collected = []
                             continue
@@ -224,24 +244,20 @@ class GUI:
 
                             if len(collected) == self.face_recognition.sample_size:
                                 print("Collection completing.")
-                                print(type(self.register_values), self.register_values)
-                                email = self.register_values['email_registration']
-                                password = self.register_values['password_registration']
-                                print(email, password)
-                                if self.face_recognition.register(email, password, collected):
-                                    print("User registered with success")
-                                    if self.capture_data:
-                                        self.capture_data.release()
-                                        self.capture_data = None
-                                    window.close()
-                                    GUI.win_registration_conf(self)
+                                self.collected_images = collected
+                                if self.capture_data:
+                                    self.capture_data.release()
+                                    self.capture_data = None
+                                window.close()
+                                GUI.win_registration_face_conf(self)
+                        window["image_collection_warning"].update(value="\n")
 
             if self.capture_data:
                 self.capture_data.release()
                 self.capture_data = None
 
         except Exception as err:
-            sg.popup()  # nie
+            sg.popup(err)  # nie
             window.close()
 
     # ############################################ #
@@ -275,24 +291,40 @@ class GUI:
 
             while True:
                 event, values = window.read(timeout=20)
-                print(event, values)
-
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
                 if event == sg.Button('Close') or event == 'close_btn':
                     window.close()
                     GUI.win_registration(self)
                 if event == sg.Button("Continue") or event == "continue_btn":
-                    print(audio_samples)
-                    email = self.register_values['email_registration']
-                    print(email, type(email))
-                    if self.voice_authentication.register(self.register_values['email_registration'],
-                                                          " ".join(_passphrase), audio_samples):
-                        window.close()
-                        GUI.win_registration_voice_success(self)
+
+                    if self.register_values and self.register_values.get("email_registration") and \
+                            self.register_values.get("password_registration") and self.collected_images and \
+                            len(self.collected_images) == self.face_recognition.sample_size and \
+                            len(audio_samples) == sample_size:
+
+                        # registration process
+                        email = self.register_values['email_registration']
+                        password = self.register_values["password_registration"]
+
+                        if self.face_recognition.register(email, password, self.collected_images):
+                            print("User registered with success in face recognition module")
+                        else:
+                            window.close()
+                            GUI.win_registration_error(self)
+
+                        if self.voice_authentication.register(email, " ".join(_passphrase), audio_samples):
+                            print("User registered with success in voice recognition module")
+                            window.close()
+                            GUI.win_registration_voice_success(self)
+                        else:
+                            self.face_recognition.remove_user(email)
+                            window.close()
+                            GUI.win_registration_error(self)
+
                     else:
                         window.close()
-                        GUI.win_registration_voice_error(self)
+                        GUI.win_registration_error(self)
 
                 # show warning
                 if show_warning:
@@ -365,11 +397,11 @@ class GUI:
             window.close()
 
     # voice registration error window
-    def win_registration_voice_error(self):
+    def win_registration_error(self):
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Text('An error occurred during Voice registration', justification='center',
+            self.layout = [[sg.Text('An error occurred during the registration process', justification='center',
                                     pad=((0, 0), (140, 0)))],
                            [sg.Text("Please try again", justification='center')],
                            [sg.Button('Home')]]

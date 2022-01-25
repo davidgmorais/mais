@@ -9,29 +9,19 @@ from scipy.io.wavfile import read
 from python_speech_features import mfcc, delta
 from sklearn import preprocessing
 from sklearn.mixture import GaussianMixture
-import mysql.connector
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding, hmac, hashes
 from cryptography.hazmat.backends import default_backend
-
-config = {
-    'host': 'localhost',
-    'port': 3306,
-    'user': 'admin',
-    'password': 'pass',
-    'database': 'mais'
-}
+from database.database_manager import DatabaseManager
 
 
 class VoiceAuthentication:
-    def __init__(self, confidence=0.0):
+    def __init__(self, database, confidence=0.0):
         self.__recognizer = None
-        self.__conn = None
+        self.__db = database
         self.log_likelihood_threshold = confidence - 100
         self.N = 2  # used for delta calculations in feature extraction
         self.passphrase_length = 2
-
-        self.__connect()
 
         # directory to save encrypted data
         self.__wav_dir = "data/"
@@ -50,7 +40,7 @@ class VoiceAuthentication:
         self.__cipher = Cipher(algorithms.AES(self.__key), modes.CBC(self.__iv), default_backend())
         self.__padder = padding.PKCS7(algorithms.AES.block_size)
 
-        if not self.__conn:
+        if not self.__db:
             return
 
         self.__model_collection = dict()
@@ -58,21 +48,8 @@ class VoiceAuthentication:
         wav_list = self.__get_wav_file_list_by_users()
 
         for _user in wav_list.keys():
-            self.__update_model_collection(wav_list[_user], _user)
-
-        for u in self.__model_collection:
-            print(type(u))
-        print(self.__model_collection)
-
-    def __connect(self):
-        """
-        Private function to connect to the database
-        """
-        try:
-            self.__conn = mysql.connector.connect(**config)
-            print("Connection established")
-        except mysql.connector.Error as err:
-            print(err)
+            if len(wav_list[_user]) > 0:
+                self.__update_model_collection(wav_list[_user], _user)
 
     def __get_wav_file_list_by_users(self):
         """
@@ -81,27 +58,10 @@ class VoiceAuthentication:
         :return: a dictionary, where the key is the user_id and the value is a list of tuples (filename, signature)
         """
         wav_list = dict()
-        if self.__conn:
-            cursor = self.__conn.cursor()
-
-            query = "SELECT id FROM USER;"
-            cursor.execute(query)
-            users = [user[0] for user in cursor.fetchall()]
-            cursor.reset()
-
-            query = "SELECT voice, mac FROM WAV WHERE user_id = %s"
+        if self.__db:
+            users = self.__db.get_users()
             for user in users:
-                cursor.execute(query, [user])
-                for wav in cursor.fetchall():
-
-                    # append tuple (filename, signature) to be used in the decryption
-                    if user in wav_list.keys():
-                        wav_list[user].append((wav[0], wav[1]))
-                    else:
-                        wav_list[user] = [(wav[0], wav[1])]
-
-                cursor.reset()
-            cursor.close()
+                wav_list[user] = self.__db.get_wavs_by_user(user)
 
         return wav_list
 
@@ -156,7 +116,6 @@ class VoiceAuthentication:
         """
 
         _dir = self.__wav_dir + str(user) + "/"
-        print(_dir)
         if not os.path.exists(_dir):
             return None
         _tmp_dir = self.__wav_dir + ".tmp/"
@@ -266,7 +225,6 @@ class VoiceAuthentication:
         :param audio: audio sample from where to recognize words spoken and validate it against the passphrase param.
         :return: True if the recognized words match the passphrase, False otherwise.
         """
-        print(self.__recognizer)
         if not self.__recognizer:
             self.__recognizer = Recognizer()
 
@@ -289,18 +247,10 @@ class VoiceAuthentication:
         :return: List of the passphrase words.
         """
 
-        if not self.__conn:
+        if not self.__db:
             return None
 
-        cursor = self.__conn.cursor()
-        query = "SELECT passphrase FROM USER WHERE email = %s;"
-        cursor.execute(query, [email])
-        passphrase = cursor.fetchone()
-        cursor.close()
-
-        if passphrase:
-            passphrase = passphrase[0].split(" ")
-        return passphrase
+        return db.get_user_passphrase_by_email(email)
 
     def listen(self):
         """
@@ -332,20 +282,10 @@ class VoiceAuthentication:
         :return: True if the user already exists, False if it does not. Returns None if a connection to the database
         is not established.
         """
-        self.__conn.close()
-        self.__connect()
-        if not self.__conn:
+        if not self.__db:
             return None
-        cursor = self.__conn.cursor()
 
-        query = f"SELECT email FROM USER WHERE email = %s;"
-        cursor.execute(query, [email])
-        users = cursor.fetchall()
-        cursor.close()
-
-        if len(users) > 0:
-            return True
-        return False
+        return self.__db.user_exists_by_email(email)
 
     def register(self, email, passphrase, audio_samples):
         """
@@ -361,26 +301,15 @@ class VoiceAuthentication:
         :return: True if the operation was successful, False otherwise.
         """
 
-        if not self.__conn or not self.user_exists(email):
-            print("[DEBUG] USER EXISTS?", self.user_exists(email))
+        if not self.__db or not self.user_exists(email):
             return False
 
-        cursor = self.__conn.cursor()
-        cursor.execute("SELECT id FROM USER WHERE EMAIL = %s", [email])
-        user_id = cursor.fetchone()[0]
-        cursor.reset()
-        print("[DEBUG] USER ID:", user_id)
-        passphrase_query = "UPDATE USER SET passphrase = %s WHERE id = %s;"
-        cursor.execute(passphrase_query, [passphrase, user_id])
+        user_id = self.__db.get_user_id_by_email(email)
+        self.__db.update_user_passphrase_by_user_id(passphrase, user_id)
 
         # encrypt and store
         samples = [self.__encrypt_and_store(audio, user_id) for audio in audio_samples]
-        wav_query = "INSERT INTO WAV (voice, mac, user_id) VALUE (%s, %s, %s);"
-        values = [s + (user_id,) for s in samples]
-
-        cursor.executemany(wav_query, values)
-        self.__conn.commit()
-        cursor.close()
+        self.__db.add_waves([_sample + (user_id,) for _sample in samples])
 
         self.__update_model_collection(samples, user_id)
         return True
@@ -400,16 +329,13 @@ class VoiceAuthentication:
         :return: True if the user was authenticated with success, False otherwise.
         """
 
-        if not self.__conn:
+        if not self.__db:
             return None
         _dir = self.__wav_dir + ".tmp/"
         if not os.path.exists(_dir):
             os.mkdir(_dir)
 
-        cursor = self.__conn.cursor()
-        cursor.execute("SELECT id FROM USER WHERE EMAIL = %s", [email])
-        user_id = cursor.fetchone()[0]
-        cursor.close()
+        user_id = self.__db.get_user_id_by_email(email)
 
         filename = uuid.uuid4().hex + ".wav"
         with open(_dir + filename, "wb") as audiofile:
@@ -434,7 +360,8 @@ class VoiceAuthentication:
 
 if __name__ == "__main__":
     debug = "auth"
-    voice_auth = VoiceAuthentication(confidence=95)
+    db = DatabaseManager()
+    voice_auth = VoiceAuthentication(db, confidence=95)
 
     # ========================================================== #
     #                   Registration main                        #

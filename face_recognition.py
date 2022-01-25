@@ -2,25 +2,14 @@ import os
 import uuid
 
 import cryptography.exceptions
-import mysql.connector
 import cv2
 import numpy as np
-import hashlib
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding, hmac, hashes
 from cryptography.hazmat.backends import default_backend
 
 
 SAMPLE_SIZE = 30
-config = {
-    'host': 'localhost',
-    'port': 3306,
-    'user': 'admin',
-    'password': 'pass',
-    'database': 'mais'
-}
-# docker run --name=mais-db -p 3306:3306 -e MYSQL_ROOT_PASSWORD=_secret -e MYSQL_USER=admin -e MYSQL_PASSWORD=pass
-# -e MYSQL_DATABASE=mais -d mysql/mysql-server:latest
 
 
 def bytes_to_opencv(im_bytes):
@@ -38,7 +27,7 @@ def bytes_to_opencv(im_bytes):
 class FaceRecognition:
     """ Class representing the face recognition module """
 
-    def __init__(self, confidence=0.0):
+    def __init__(self, database, confidence=0.0):
         """
         Initializes a FaceRecognition instance
 
@@ -51,10 +40,9 @@ class FaceRecognition:
         """
 
         self.__recognizer = cv2.face.LBPHFaceRecognizer_create()
-        self.__conn = None
+        self.__db = database
         self.sample_size = SAMPLE_SIZE
         self.confidence = confidence             # authentication confidence (false match rate / false non match rate)
-        self.__connect()
 
         # directory to save encrypted data
         self.__data_dir = "data/"
@@ -70,24 +58,13 @@ class FaceRecognition:
         self.__cipher = Cipher(algorithms.AES(self.__key), modes.CBC(self.__iv), default_backend())
         self.__padder = padding.PKCS7(algorithms.AES.block_size)  # block_size in bits
 
-        if not self.__conn:
+        if not self.__db:
             return
 
         faces, ids = self.__get_faces_and_labels()
         if len(faces) == 0 or len(ids) == 0:
             return
         self.__recognizer.train(faces, np.asarray(ids))
-
-    def __connect(self):
-        """
-        Private function to connect to the database
-        """
-
-        try:
-            self.__conn = mysql.connector.connect(**config)
-            print("Connection established")
-        except mysql.connector.Error as err:
-            print(err)
 
     def __get_faces_and_labels(self):
         """
@@ -103,28 +80,19 @@ class FaceRecognition:
         """
 
         faces, ids = [], []
-        if self.__conn:
-            cursor = self.__conn.cursor()
+        if self.__db:
 
-            query = "SELECT id FROM USER;"
-            cursor.execute(query)
-            users = [user[0] for user in cursor.fetchall()]
-            cursor.reset()
-
-            query = "SELECT image, mac FROM IMAGE WHERE user_id = %s;"
+            users = self.__db.get_users()
             for user in users:
-                cursor.execute(query, [user])
-                for image in cursor.fetchall():
+                image_list = self.__db.get_images_by_user(user)
+                for image, mac in image_list:
 
-                    face = self.__decrypt_and_verify(image[0], image[1], user)
+                    face = self.__decrypt_and_verify(image, mac, user)
                     if face is None:
                         continue
 
                     faces.append(face)
                     ids.append(user)
-
-                cursor.reset()
-            cursor.close()
 
         return faces, ids
 
@@ -203,26 +171,6 @@ class FaceRecognition:
 
         return bytes_to_opencv(face)
 
-    def __get_label(self, email):
-        """
-        Private function to retrieve a user id (used as a label in the LBPHFaceRecognition) from the database, based
-        on the user email.
-
-        :param email: email belonging to the user to which will be retrieving the label from
-        :return: the user label. Returns None if a connection to the database is not be established.
-        """
-
-        if not self.__conn:
-            return None
-        cursor = self.__conn.cursor()
-
-        query = f"SELECT id FROM USER WHERE email = %s;"
-        cursor.execute(query, [email])
-        label = cursor.fetchone()
-        cursor.close()
-
-        return label[0]
-
     def user_exists(self, email):
         """
         Verifies if the user already exists on the database, based on their email, by checking if a user with the
@@ -233,18 +181,10 @@ class FaceRecognition:
         is not established.
         """
 
-        if not self.__conn:
+        if not self.__db:
             return None
-        cursor = self.__conn.cursor()
 
-        query = f"SELECT email FROM USER WHERE email = %s;"
-        cursor.execute(query, [email])
-        users = cursor.fetchall()
-        cursor.close()
-
-        if len(users) > 0:
-            return True
-        return False
+        return self.__db.user_exists_by_email(email)
 
     def register(self, email, password, collected_images):
         """
@@ -261,25 +201,15 @@ class FaceRecognition:
         :return: True if the registration is successful, False otherwise.
         """
 
-        if not self.__conn or self.user_exists(email):
+        if not self.__db or self.user_exists(email):
             return False
 
-        cursor = self.__conn.cursor()
-        password = hashlib.sha256(password.encode(encoding='utf-8')).hexdigest()
-        user_query = "INSERT INTO USER (email, password) VALUES (%s, %s)"
-        cursor.execute(user_query, [email, password])
-        cursor.reset()
-
-        cursor.execute("SELECT id FROM USER WHERE EMAIL = %s", [email])
-        user_id = cursor.fetchone()[0]
+        self.__db.add_user(email, password)
+        user_id = self.__db.get_user_id_by_email(email)
 
         # encrypt and store collected_images and their respective mac
-        image_query = "INSERT INTO IMAGE (image, mac, user_id) VALUES (%s, %s, %s)"
         values = [self.__encrypt_and_store(face, user_id) + (user_id, ) for face in collected_images]
-
-        cursor.executemany(image_query, values)
-        cursor.close()
-        self.__conn.commit()
+        self.__db.add_images(values)
 
         self.__recognizer.update(
             [bytes_to_opencv(face) for face in collected_images],
@@ -292,19 +222,19 @@ class FaceRecognition:
         Authenticate a user based on its email and face's image.
 
         Authenticates a user by first checking if the provided email is registered on the database, if so it retrieves
-        the user's id (which will be used as a label for the LBPHFaceRecognition) through the private function
-        '__get_labels()'. Afterwards uses the predict method to predict the label and the confidence of the face in
-        the image and if the label matches with the user's id retrieved from the database and the confidence is bigger
-        or equal to the confidence threshold, then the user is authenticated.
+        the user's id (which will be used as a label for the LBPHFaceRecognition). Afterwards uses the predict method
+        to predict the label and the confidence of the face in the image and if the label matches with the user's id
+        retrieved from the database and the confidence is bigger or equal to the confidence threshold, then the user is
+        authenticated.
 
         :param email: email of the user who wants to be authenticated
         :param image: greyscale image of the face of the user who wants to be authenticated
         :return: True if the user is authenticated, False otherwise.
         """
 
-        if not self.__conn or not self.user_exists(email):
+        if not self.__db or not self.user_exists(email):
             return False
-        user_label = self.__get_label(email)
+        user_label = self.__db.get_user_id_by_email(email)
 
         label, confidence = self.__recognizer.predict(image)
         if label != user_label:
@@ -314,12 +244,3 @@ class FaceRecognition:
             return True
 
         return False
-
-    def close(self):
-        """
-        Closes the database connection, if it is established.
-        """
-
-        if self.__conn:
-            self.__conn.close()
-            print("Connection closed")

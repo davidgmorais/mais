@@ -3,6 +3,7 @@ import getpass
 import cv2
 
 from GUI.main import GUI
+from database.database_manager import DatabaseManager
 from face_detection import FaceDetector
 from face_recognition import FaceRecognition
 from voice_authentication import VoiceAuthentication
@@ -66,8 +67,8 @@ def register():
     varies, then the collection will start over. Once sampling is completed, the video capture is released and the
     method register of FaceRegister is called to register the user.
     """
-
-    face_recognition = FaceRecognition()
+    database = DatabaseManager()
+    face_recognition = FaceRecognition(database)
 
     print("** User Registration **")
     email = input("E-mail: ")
@@ -124,8 +125,8 @@ def auth():
     authenticate the user, using the authenticate method of the FaceRecognition. Closes the video capture from the
     live camera and the connection to the FaceRecognition.
     """
-
-    face_recognition = FaceRecognition(confidence=65.0)
+    database = DatabaseManager()
+    face_recognition = FaceRecognition(database, confidence=65.0)
 
     email = input("E-mail: ")
     tries = 0
@@ -162,7 +163,7 @@ def auth():
 
     cap.release()
     cv2.destroyAllWindows()
-    face_recognition.close()
+    database.close()
 
 
 def main(_type):
@@ -178,9 +179,10 @@ def main(_type):
     elif _type == 'auth':
         auth()
     elif _type == 'gui':
+        database = DatabaseManager()
         face_detector = FaceDetector(0.3, 2)
-        face_recognition = FaceRecognition(confidence=65.0)
-        voice_auth = VoiceAuthentication(confidence=90)
+        face_recognition = FaceRecognition(database, confidence=65.0)
+        voice_auth = VoiceAuthentication(database, confidence=90)
         GUI(face_detector, face_recognition, voice_auth)
     else:
         print("[ERROR] Unknown action.")

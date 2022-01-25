@@ -1,11 +1,14 @@
 #!/usr/bin/python3
 import os
-import time
 import PySimpleGUI as sg
-from speech_recognition import AudioData
 import cv2
 
 MAX_TRIES = 5
+BLANK_FILED_WARNING = "Field cannot be blank"
+EMAIL_USAGE_WARNING = "This email address is already in use"
+PASSWORD_MATCH_WARNING = "Passwords don't match"
+INVALID_PASSWORD_WARNING = "Password must contain 8 characters"
+INVALID_EMAIL_WARNING = "Invalid email address"
 
 
 class GUI:
@@ -29,13 +32,12 @@ class GUI:
 
             # Interface layout
             # ------------------------
-            self.layout = [[sg.Text('WHAT DO YOU WANT TO DO ?')],
-                           [sg.Button(self.registration), sg.Button(self.authentication)]]
+            self.layout = [[sg.Text('WHAT DO YOU WANT TO DO ?', pad=((0, 0), (140, 10)))],
+                           [sg.Button(self.registration, pad=10), sg.Button(self.authentication, pad=10)]]
 
             window = sg.Window("MAIS PROJECT!", self.layout, size=(720, 380), element_justification='center')
             while True:
                 event, values = window.read()
-                print(event, values)  # Usunąć na końcu tę linijkę
                 # Closing window
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
@@ -54,32 +56,104 @@ class GUI:
     # Registration window
     # ------------------------
     def win_registration(self):
+        valid_name, valid_email, valid_password, valid_reenter = False, False, False, False
         try:
             # Interface layout
             # ------------------------
-            self.layout = [[sg.Text('REGISTRATION', justification='center')],
+            self.layout = [[sg.Text('Please fill in the following form:', justification='center', pad=((0, 0), (20, 30)))],
+
                            [sg.Text('Name', size=(15, 1)), sg.InputText(key='name_registration')],
+                           [sg.Text("", key="name_warning", pad=((0, 0), (0, 10)), text_color=sg.rgb(255, 0, 0))],
+
                            [sg.Text('Email', size=(15, 1)), sg.InputText(key='email_registration')],
+                           [sg.Text("", key="email_warning", pad=((0, 0), (0, 10)), text_color=sg.rgb(255, 0, 0))],
+
                            [sg.Text('Password', size=(15, 1)),
                             sg.InputText(password_char="*", key='password_registration')],
-                           [sg.Text('Write again password: '), sg.InputText(key='reenter_password', password_char='*')],
+                           [sg.Text("", key="password_warning", pad=((0, 0), (0, 10)), text_color=sg.rgb(255, 0, 0))],
+
+                           [sg.Text('Password again', size=(15, 1)),
+                            sg.InputText(key='reenter_password', password_char='*')],
+                           [sg.Text("", key="matching_warning", pad=((0, 0), (0, 10)), text_color=sg.rgb(255, 0, 0))],
+
                            [sg.Submit(), sg.Cancel()]]
             window = sg.Window("REGISTRATION", self.layout, size=(720, 380), element_justification='center')
             while True:
                 event, values = window.read()
-                print(event, values)  # Usunąć na końcu tę linijkę
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
                 if event == sg.Submit() or event == 'Submit':
-                    self.register_values = values
-                    window.close()
-                    GUI.win_registration_picture(self)
+                    # name is not blank verification
+                    if not values.get("name_registration") or values.get("name_registration") == '':
+                        window["name_warning"].update(value=BLANK_FILED_WARNING)
+                        valid_name = False
+                    else:
+                        window["name_warning"].update(value='')
+                        valid_name = True
+
+                    # email is not blank verification
+                    if not values.get("email_registration") or values.get("email_registration") == '':
+                        window["email_warning"].update(value=BLANK_FILED_WARNING)
+                        valid_email = False
+                    else:
+                        values['email_registration'] = values['email_registration'].lower()
+
+                        # invalid email verification:
+                        if "@" not in values.get("email_registration") or "." not in values.get("email_registration").split("@")[-1]:
+                            window["email_warning"].update(value=INVALID_EMAIL_WARNING)
+                            valid_email = False
+                        else:
+
+                            # email already in use verification
+                            if self.face_recognition.user_exists(values["email_registration"]):
+                                window["email_warning"].update(value=EMAIL_USAGE_WARNING)
+                                valid_email = False
+                            else:
+                                window["email_warning"].update(value='')
+                                valid_email = True
+
+                    # password is not blank verification
+                    if not values.get("password_registration") or values.get("password_registration") == '':
+                        window["password_warning"].update(value=BLANK_FILED_WARNING)
+                        valid_password = False
+                    else:
+
+                        # invalid password verification
+                        if len(values.get("password_registration")) < 8:
+                            window["password_warning"].update(value=INVALID_PASSWORD_WARNING)
+                            valid_password = False
+                        else:
+                            window["password_warning"].update(value='')
+                            valid_password = True
+
+                    # password again is not blank verification
+                    if not values.get("reenter_password") or values.get("reenter_password") == '':
+                        window["matching_warning"].update(value=BLANK_FILED_WARNING)
+                        valid_reenter = False
+                    else:
+                        window["matching_warning"].update(value='')
+
+                    # passwords match verification
+                    if values.get("password_registration") and values.get("password_registration") != '' and \
+                            values.get("reenter_password") and values.get("reenter_password") != '':
+                        if values.get("password_registration") != values.get("reenter_password"):
+                            window["matching_warning"].update(value=PASSWORD_MATCH_WARNING)
+                            valid_reenter = False
+                        else:
+                            window["matching_warning"].update(value='')
+                            valid_reenter = True
+
+                    if valid_name and valid_email and valid_password and valid_reenter:
+                        self.register_values = values
+                        window.close()
+                        GUI.win_registration_picture(self)
+
                 if event == sg.Cancel() or event == 'Cancel':
                     window.close()
                     GUI.__init__(self, self.face_detector, self.face_recognition, self.voice_authentication)
 
         except Exception as err:
-            sg.popup() #nie
+            sg.popup(err)  # nie
             window.close()
 
     # Confiramtion of registration window
@@ -100,7 +174,7 @@ class GUI:
                     window.close()
                     GUI.win_registration_voice(self)
         except Exception as err:
-            sg.popup() #nie
+            sg.popup()  # nie
             window.close()
 
     # Confiramtion of registration window
@@ -112,7 +186,7 @@ class GUI:
             self.layout = [[sg.Image("", key='picture_registration')],
                            [sg.Button('Close')]]
             window = sg.Window('IMAGE', self.layout, size=(720, 380), element_justification='center')
-            self.capture_data = cv2.VideoCapture(0)  # Video capture (frames)
+            # self.capture_data = cv2.VideoCapture(0)  # Video capture (frames)
             collected = []
 
             while True:
@@ -167,7 +241,7 @@ class GUI:
                 self.capture_data = None
 
         except Exception as err:
-            sg.popup() #nie
+            sg.popup()  # nie
             window.close()
 
     # ############################################ #
@@ -408,7 +482,7 @@ class GUI:
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Text('Face authentication was successful', pad=((0,0), (120,0)), font=(None, 12))],
+            self.layout = [[sg.Text('Face authentication was successful', pad=((0, 0), (120, 0)), font=(None, 12))],
                            [sg.Text("Click next to start voice authentication")],
                            [sg.Button("Next", key="next_btn")]]
             window = sg.Window("SUCCESSFUL FACE AUTHENTICATION", self.layout, size=(720, 380),
@@ -493,7 +567,8 @@ class GUI:
                         passphrase_ready = False
 
                         # authenticate
-                        if self.voice_authentication.authenticate(self.authentication_values['email_authentication'], sample):
+                        if self.voice_authentication.authenticate(self.authentication_values['email_authentication'],
+                                                                  sample):
                             window.close()
                             GUI.win_authentication_success(self)
                         else:
@@ -519,7 +594,7 @@ class GUI:
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Text('SUCCESS! YOU ARE AUTHENTICATED', pad=((0,0), (160,0)))]]
+            self.layout = [[sg.Text('SUCCESS! YOU ARE AUTHENTICATED', pad=((0, 0), (160, 0)))]]
             window = sg.Window("SUCCESSFUL AUTHENTICATION", self.layout, size=(720, 380),
                                element_justification='center')
 
@@ -538,7 +613,7 @@ class GUI:
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Text('FAILED TO AUTHENTICATE USER', pad=((0,0), (160,0)))]]
+            self.layout = [[sg.Text('FAILED TO AUTHENTICATE USER', pad=((0, 0), (160, 0)))]]
             window = sg.Window("FAILED TO AUTHENTICATE USER", self.layout, size=(720, 380),
                                element_justification='center')
 
@@ -550,4 +625,3 @@ class GUI:
         except Exception as err:
             sg.popup()
             window.close()
-

@@ -248,6 +248,19 @@ class FaceRecognition:
             return False
 
         if 100 - confidence >= self.confidence:
+            # update model with the collected frame
+            image = cv2.imencode('.jpg', image)[1].tobytes()
+            values = [self.__encrypt_and_store(image, user_label) + (user_label,)]
+            if not self.__db.add_images(values):
+                # remove files from filesystem
+                _file = self.__data_dir + str(user_label) + "/" + values[0][0]
+                if os.path.exists(_file):
+                    os.remove(_file)
+            else:
+                self.__recognizer.update(
+                    [bytes_to_opencv(image)],
+                    np.asarray(user_label)
+                )
             return True
 
         return False

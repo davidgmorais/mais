@@ -22,3 +22,13 @@ CREATE TABLE mais.WAV(
 
     FOREIGN KEY (user_id) REFERENCES USER(id)
 );
+
+CREATE TABLE mais.RECORD(
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    date VARCHAR(30) NOT NULL,
+    status ENUM('FAILED', 'SUCCEEDED') NOT NULL,
+    type ENUM('Face ID', 'Voice ID') NOT NULL,
+    user_id int NOT NULL,
+
+    FOREIGN KEY (user_id) REFERENCES USER(id)
+);

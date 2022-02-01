@@ -1,3 +1,5 @@
+import datetime
+
 import mysql.connector
 import hashlib
 
@@ -38,7 +40,6 @@ class DatabaseManager:
         cursor.execute(query)
         users = [user[0] for user in cursor.fetchall()]
         cursor.close()
-        self.__conn.commit()
         return users
 
     def get_user_id_by_email(self, email):
@@ -107,7 +108,7 @@ class DatabaseManager:
         cursor.close()
 
         if passphrase:
-            passphrase[0].split(" ")
+            passphrase = passphrase[0].split(" ")
         return passphrase
 
     def update_user_passphrase_by_user_id(self, passphrase, user_id):
@@ -186,6 +187,39 @@ class DatabaseManager:
             print(err)
             return False
         return True
+
+    # record methods
+    def log_record(self, user_id, module, status):
+        if not self.__conn:
+            return None
+        if module not in ['Face ID', 'Voice ID']:
+            return False
+        try:
+            _date = datetime.datetime.now()
+            _formatted_date = _date.strftime('%Y-%m-%d %H:%M:%S')
+            _status = "SUCCEEDED" if status else "FAILED"
+            query = "INSERT INTO RECORD (date, type, status, user_id) VALUES (%s, %s, %s, %s);"
+            cursor = self.__conn.cursor()
+            cursor.execute(query, [_formatted_date, module, _status, user_id])
+            cursor.close()
+            self.__conn.commit()
+        except mysql.connector.Error as err:
+            print(err)
+            return False
+        return True
+
+    def get_records(self, module):
+        if not self.__conn:
+            return None
+        if module not in ['Face ID', 'Voice ID']:
+            return False
+
+        query = "SELECT USER.email, RECORD.date, RECORD.status, RECORD.type FROM RECORD INNER JOIN USER on RECORD.user_id = USER.id WHERE type = %s"
+        cursor = self.__conn.cursor()
+        cursor.execute(query, [module])
+        records = [[rec[0], datetime.datetime.strptime(rec[1], '%Y-%m-%d %H:%M:%S'), rec[2], rec[3]] for rec in cursor.fetchall()]
+        cursor.close()
+        return records
 
     # utils methods
     def close(self):

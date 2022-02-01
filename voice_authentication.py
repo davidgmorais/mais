@@ -236,6 +236,7 @@ class VoiceAuthentication:
 
         recognized_passphrase = recognized_passphrase.lower()
         print("[LOG] Recognized passphrase:", recognized_passphrase)
+        print(passphrase)
         if recognized_passphrase.split(" ") == passphrase:
             return True
         return False
@@ -251,7 +252,7 @@ class VoiceAuthentication:
         if not self.__db:
             return None
 
-        return db.get_user_passphrase_by_email(email)
+        return self.__db.get_user_passphrase_by_email(email)
 
     def adjust_for_ambient(self):
         """
@@ -365,10 +366,17 @@ class VoiceAuthentication:
         print("Likelihood:", log_likelihood)
         if log_likelihood > self.log_likelihood_threshold:
             os.remove(_dir + "/" + filename)
+            self.__db.log_record(user_id, 'Voice ID', True)
             return True
 
         os.remove(_dir + "/" + filename)
+        self.__db.log_record(user_id, 'Voice ID', False)
         return False
+
+    def get_records(self):
+        # TODO: add admin verifications ?
+        records = self.__db.get_records("Voice ID")
+        return records
 
 
 if __name__ == "__main__":

@@ -245,6 +245,7 @@ class FaceRecognition:
 
         label, confidence = self.__recognizer.predict(image)
         if label != user_label:
+            self.__db.log_record(user_label, 'Face ID', False)
             return False
 
         if 100 - confidence >= self.confidence:
@@ -261,8 +262,10 @@ class FaceRecognition:
                     [bytes_to_opencv(image)],
                     np.asarray(user_label)
                 )
+            self.__db.log_record(user_label, 'Face ID', True)
             return True
 
+        self.__db.log_record(user_label, 'Face ID', False)
         return False
 
     def remove_user(self, email):
@@ -278,3 +281,13 @@ class FaceRecognition:
             _dir = self.__data_dir + str(user_id) + "/"
             shutil.rmtree(_dir)
         self.__db.remove_user(user_id)
+
+    def get_records(self):
+        # TODO: add admin verifications ?
+        records = self.__db.get_records("Face ID")
+        return records
+
+    def get_user_count(self):
+        # TODO: add admin verifications ?
+        return len(self.__db.get_users())
+

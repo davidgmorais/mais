@@ -36,11 +36,14 @@ class GUI:
             # Interface layout
             # ------------------------
             self.layout = [[sg.Text('WHAT DO YOU WANT TO DO ?', pad=((0, 0), (140, 10)))],
-                           [sg.Button(self.registration, pad=10), sg.Button(self.authentication, pad=10)]]
+                           [sg.Button(self.registration, pad=10), sg.Button(self.authentication, pad=10)],
+                           [sg.Text("Admin Dashboard", enable_events=True, key="dashboard", font=(None, 9, 'underline'),
+                                    pad=((0, 0), (100, 0)))]]
 
             window = sg.Window("MAIS PROJECT!", self.layout, size=(720, 380), element_justification='center')
             while True:
                 event, values = window.read()
+                print(event, values)
                 # Closing window
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
@@ -48,9 +51,13 @@ class GUI:
                     window.close()
                     GUI.win_registration(self)
 
-                if event == self.authentication:
+                elif event == self.authentication:
                     window.close()
                     GUI.win_authentication(self)
+
+                elif event == "dashboard":
+                    window.close()
+                    GUI.win_dashboard(self)
 
         except Exception as err:
             sg.popup(err)
@@ -176,7 +183,8 @@ class GUI:
             else:
                 self.layout = [[sg.Image(self.assets_path + "error.png", pad=((0, 0), (80, 0)))],
                                [sg.Text('Something went wrong.', pad=((0, 0), (20, 0)), font=(None, 12))],
-                               [sg.Text("Click Cancel to go to back the home page and try again", pad=((0, 0), (0, 20)))],
+                               [sg.Text("Click Cancel to go to back the home page and try again",
+                                        pad=((0, 0), (0, 20)))],
                                [sg.Cancel()]]
 
             window = sg.Window("FACE COLLECTION COMPLETED", self.layout, size=(720, 380),
@@ -422,7 +430,8 @@ class GUI:
         try:
             self.layout = [
                 [sg.Image(self.assets_path + "error.png", pad=((0, 0), (90, 0)))],
-                [sg.Text('An error occurred during the registration process', justification='center', pad=((0, 0), (20, 0)))],
+                [sg.Text('An error occurred during the registration process', justification='center',
+                         pad=((0, 0), (20, 0)))],
                 [sg.Text("Please try again", justification='center')],
                 [sg.Button('Home', pad=(0, 5))]]
             window = sg.Window("Error in registration", self.layout, size=(720, 380), element_justification='center')
@@ -638,9 +647,11 @@ class GUI:
 
                 # validate the passphrase
                 elif sample and not feedback_ready:
+                    pid = None
                     if self.voice_authentication.validate_passphrase(_passphrase, sample):
                         show_warning = False
                         passphrase_ready = False
+                        print("valid")
 
                         # authenticate
                         if self.voice_authentication.authenticate(self.authentication_values['email_authentication'],
@@ -716,6 +727,65 @@ class GUI:
                 if event == sg.Button("Home") or event == "Home":
                     window.close()
                     GUI.__init__(self, self.face_detector, self.face_recognition, self.voice_authentication)
+
+        except Exception as err:
+            sg.popup(err)
+
+    # ############################################ #
+    #                  DASHBOARD                   #
+    # ############################################ #
+    def win_dashboard(self):
+        sort_types = ["Sort", ['By latest', 'By oldest', 'By email']]
+
+        _face_records = self.face_recognition.get_records()
+        _face_success_count = len([rec for rec in _face_records if rec[2] == "SUCCEEDED"])
+        _face_auth_rate = (_face_success_count * 100 / len(_face_records)) if len(_face_records) > 0 else 0.0
+
+        _voice_records = self.voice_authentication.get_records()
+        _voice_success_count = len([rec for rec in _voice_records if rec[2] == "SUCCEEDED"])
+        _voice_auth_rate = _voice_success_count * 100 / len(_voice_records) if len(_voice_records) > 0 else 0.0
+
+        data = sorted(_face_records + _voice_records, key=lambda row: row[1], reverse=True)
+        _mais_auth_rate = (_face_success_count + _voice_success_count) * 100 / len(data) if len(data) > 0 else 0.0
+
+        try:
+            self.layout = [
+                [[sg.Text('DASHBOARD', font=(None, 18), pad=((0, 500), (0, 0))),
+                  sg.Button(image_filename=self.assets_path + "logout.png", tooltip="Exit", key="exit")]],
+
+                [[sg.Text("Total users:"), sg.Text(self.face_recognition.get_user_count(), key="total_users")],
+                 [sg.HorizontalSeparator(pad=((0, 0), (0, 10)))],
+
+                 [sg.Text("Face Auth rate:"), sg.Text('{0:.2f}'.format(_face_auth_rate) + "%", pad=((0, 80), (0, 0)), key="face_auth_rate", text_color=sg.rgb(34, 178, 34) if _face_auth_rate > self.face_recognition.confidence else sg.rgb(178, 34, 34)),
+                  sg.Text("Voice Auth rate:"), sg.Text('{0:.2f}'.format(_voice_auth_rate) + "%", pad=((0, 80), (0, 0)), key="voice_auth_rate", text_color=sg.rgb(34, 178, 34) if _voice_auth_rate > self.voice_authentication.log_likelihood_threshold + 100 else sg.rgb(178, 34, 34)),
+                  sg.Text("MAIS auth rate:"), sg.Text('{0:.2f}'.format(_mais_auth_rate) + "%", pad=((0, 80), (0, 0)), key="auth_rate", text_color=sg.rgb(34, 178, 34) if _mais_auth_rate > (self.voice_authentication.log_likelihood_threshold + 100 + self.face_recognition.confidence) / 2 else sg.rgb(178, 34, 34)),]],
+
+                [sg.ButtonMenu("Sort", sort_types, key="sort")],
+
+                [sg.Table(values=data, key="records", headings=["User", "Date", "Status", "Type"],
+                          justification='center', auto_size_columns=True, expand_y=True, expand_x=True)]
+            ]
+            window = sg.Window("DASHBOARD", self.layout, size=(720, 380))
+
+            while True:
+                event, values = window.read()
+                print(event, values)
+                if event == sg.WIN_CLOSED or event == 'Exit':
+                    break
+
+                if event == sg.Button("Exit") or event == "exit":
+                    window.close()
+                    GUI.__init__(self, self.face_detector, self.face_recognition, self.voice_authentication)
+
+                if event == sg.Button("Sort") or event == "sort":
+                    _sort = values['sort']
+                    if _sort == "By latest":
+                        data = sorted(data, key=lambda row: row[1], reverse=True)
+                    elif _sort == "By oldest":
+                        data = sorted(data, key=lambda row: row[1])
+                    elif _sort == "By email":
+                        data = sorted(data, key=lambda row: row[0])
+                    window['records'].update(values=data)
 
         except Exception as err:
             sg.popup(err)

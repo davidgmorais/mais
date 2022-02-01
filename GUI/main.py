@@ -54,7 +54,6 @@ class GUI:
 
         except Exception as err:
             sg.popup(err)
-            window.close()
 
     # Registration from window
     # ------------------------
@@ -80,7 +79,7 @@ class GUI:
                  sg.InputText(key='reenter_password', password_char='*')],
                 [sg.Text("", key="matching_warning", pad=((0, 0), (0, 10)), text_color=sg.rgb(255, 0, 0))],
 
-                [sg.Submit(), sg.Cancel()]]
+                [sg.Cancel(), sg.Submit()]]
             window = sg.Window("REGISTRATION", self.layout, size=(720, 380), element_justification='center')
             while True:
                 event, values = window.read()
@@ -449,21 +448,39 @@ class GUI:
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Text('CONFIRMATION', justification='center')],
-                           [sg.Text('Email', size=(15, 1)), sg.InputText(key='email_authentication'), sg.Submit()]]
+            self.layout = [[sg.Text('Please, introduce your email so we can start.', justification='center', pad=((0, 0), (120, 10)))],
+                           [sg.Text('Email', size=(8, 1)), sg.InputText(key='email_authentication')],
+                           [sg.Text("", key="email_warning", pad=((0, 0), (0, 10)), text_color=sg.rgb(255, 0, 0))],
+                           [sg.Cancel(pad=(5, 10)), sg.Submit(pad=(5, 10))]]
             window = sg.Window("AUTHENTICATION", self.layout, size=(720, 380), element_justification='center')
             while True:
                 event, values = window.read()
-                print(event, values)  # Usunąć na końcu tę linijkę
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
+
                 if event == sg.Submit() or event == 'Submit':
-                    self.authentication_values = values
+                    # email is not blank verification
+                    if not values.get("email_authentication") or values.get("email_authentication") == '':
+                        window["email_warning"].update(value=BLANK_FILED_WARNING)
+                    else:
+                        values['email_authentication'] = values['email_authentication'].lower()
+
+                        # invalid email verification:
+                        if "@" not in values.get("email_authentication") or "." not in \
+                                values.get("email_authentication").split("@")[-1]:
+                            window["email_warning"].update(value=INVALID_EMAIL_WARNING)
+                        else:
+                            window["email_warning"].update(value="")
+                            self.authentication_values = values
+                            window.close()
+                            GUI.win_authentication_face(self)
+
+                elif event == sg.Cancel() or event == 'Cancel':
                     window.close()
-                    GUI.win_authentication_face(self)
+                    GUI.__init__(self, self.face_detector, self.face_recognition, self.voice_authentication)
+
         except Exception as err:
-            sg.popup()
-            window.close()
+            sg.popup(err)
 
     # Authentication window
     # ------------------------
@@ -471,15 +488,17 @@ class GUI:
         # Interface layout
         # ------------------------
         tries = 0
+        sleep = 15      # so that the first frame is not grabbed immediately and the info can be displayed
         try:
-            self.layout = [[sg.Image(key="auth_face")],
+            self.layout = [[sg.Text("Please, look into the camera")],
+                           [sg.Image("", key='auth_face')],
                            [sg.Cancel()]]
+
             window = sg.Window("FACE MAIS", self.layout, size=(720, 380), element_justification='center')
             self.capture_data = cv2.VideoCapture(0)  # Video capture (frames)
 
             while True:
                 event, values = window.read(timeout=20)
-                print(event, values)  # Usunąć na końcu tę linijkę
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
 
@@ -499,6 +518,10 @@ class GUI:
                         img = cv2.resize(img, (width, height), interpolation=cv2.INTER_LINEAR)
                         img_bytes = cv2.imencode(".png", img)[1].tobytes()
                         window['auth_face'].update(data=img_bytes)
+
+                        if sleep > 0:
+                            sleep -= 1
+                            continue
 
                         if len(roi_gray) == 0:
                             continue
@@ -527,8 +550,7 @@ class GUI:
                 self.capture_data = None
 
         except Exception as err:
-            sg.popup()
-            window.close()
+            sg.popup(err)
 
     def win_face_authentication_success(self):
         # Interface layout
@@ -549,8 +571,7 @@ class GUI:
                     GUI.win_authentication_voice(self)
 
         except Exception as err:
-            sg.popup()
-            window.close()
+            sg.popup(err)
 
     # ############################################ #
     #             VOICE AUTHENTICATION             #
@@ -649,7 +670,6 @@ class GUI:
 
         except Exception as err:
             sg.popup(err)
-            window.close()
 
     # Successful confirmation of authentication process window
     # ------------------------
@@ -657,7 +677,8 @@ class GUI:
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Text('SUCCESS! YOU ARE AUTHENTICATED', pad=((0, 0), (160, 0)))]]
+            self.layout = [[sg.Text('SUCCESS! YOU ARE AUTHENTICATED', pad=((0, 0), (150, 10)))],
+                           [sg.Button("Home")]]
             window = sg.Window("SUCCESSFUL AUTHENTICATION", self.layout, size=(720, 380),
                                element_justification='center')
 
@@ -666,9 +687,12 @@ class GUI:
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
 
+                if event == sg.Button("Home") or event == "Home":
+                    window.close()
+                    GUI.__init__(self, self.face_detector, self.face_recognition, self.voice_authentication)
+
         except Exception as err:
-            sg.popup()
-            window.close()
+            sg.popup(err)
 
     # Failed to authenticate user
     # ------------------------
@@ -676,7 +700,8 @@ class GUI:
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Text('FAILED TO AUTHENTICATE USER', pad=((0, 0), (160, 0)))]]
+            self.layout = [[sg.Text('FAILED TO AUTHENTICATE USER', pad=((0, 0), (150, 10)))],
+                           [sg.Button("Home")]]
             window = sg.Window("FAILED TO AUTHENTICATE USER", self.layout, size=(720, 380),
                                element_justification='center')
 
@@ -685,6 +710,9 @@ class GUI:
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
 
+                if event == sg.Button("Home") or event == "Home":
+                    window.close()
+                    GUI.__init__(self, self.face_detector, self.face_recognition, self.voice_authentication)
+
         except Exception as err:
-            sg.popup()
-            window.close()
+            sg.popup(err)

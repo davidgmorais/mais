@@ -158,7 +158,6 @@ class GUI:
 
         except Exception as err:
             sg.popup(err)  # nie
-            window.close()
 
     # Confirmation of face collection window
     # ------------------------
@@ -167,15 +166,19 @@ class GUI:
         # ------------------------
         try:
             if self.register_values and self.register_values.get("email_registration") and \
-                    self.register_values.get("password_registration") and self.collected_images and\
+                    self.register_values.get("password_registration") and self.collected_images and \
                     len(self.collected_images) == self.face_recognition.sample_size:
-                self.layout = [[sg.Text('Image collection was successful', pad=((0, 0), (120, 0)), font=(None, 12))],
+
+                self.layout = [[sg.Image(self.assets_path + "success.png", pad=((0, 0), (80, 0)))],
+                               [sg.Text('Image collection was successful', pad=((0, 0), (20, 0)), font=(None, 12))],
                                [sg.Text("Click next to start voice registration", pad=((0, 0), (0, 20)))],
                                [sg.Button("Next", key="next_btn")]]
             else:
-                self.layout = [[sg.Text('Something went wrong.', pad=((0, 0), (120, 0)), font=(None, 12))],
+                self.layout = [[sg.Image(self.assets_path + "error.png", pad=((0, 0), (80, 0)))],
+                               [sg.Text('Something went wrong.', pad=((0, 0), (20, 0)), font=(None, 12))],
                                [sg.Text("Click Cancel to go to back the home page and try again", pad=((0, 0), (0, 20)))],
                                [sg.Cancel()]]
+
             window = sg.Window("FACE COLLECTION COMPLETED", self.layout, size=(720, 380),
                                element_justification='center')
             while True:
@@ -192,7 +195,6 @@ class GUI:
 
         except Exception as err:
             sg.popup(err)  # nie
-            window.close()
 
     # Image collection for registration window
     # ------------------------
@@ -258,7 +260,6 @@ class GUI:
 
         except Exception as err:
             sg.popup(err)  # nie
-            window.close()
 
     # ############################################ #
     #               VOICE ENROLLMENT               #
@@ -379,7 +380,7 @@ class GUI:
                 elif sample_count < sample_size and not pid:
                     pid = threading.Thread(
                         target=self.gui_listener_wrapper,
-                        args=(window, ),
+                        args=(window,),
                         daemon=True
                     )
                     pid.start()
@@ -390,7 +391,6 @@ class GUI:
 
         except Exception as err:
             sg.popup(err)
-            window.close()
 
     # voice registration successful window
     def win_registration_voice_success(self):
@@ -398,9 +398,10 @@ class GUI:
         # ------------------------
         try:
             self.layout = [
-                [sg.Text('Voice registration was successful', justification='center', pad=((0, 0), (140, 0)))],
+                [sg.Image(self.assets_path + "success.png", pad=((0, 0), (90, 0)))],
+                [sg.Text('Voice registration was successful', justification='center', pad=((0, 0), (20, 0)))],
                 [sg.Text("Registration is fully completed", justification='center')],
-                [sg.Button('Home')]]
+                [sg.Button('Home', pad=(0, 5))]]
             window = sg.Window("Registration successful", self.layout, size=(720, 380), element_justification='center')
 
             while True:
@@ -413,17 +414,17 @@ class GUI:
 
         except Exception as err:
             sg.popup(err)
-            window.close()
 
     # voice registration error window
     def win_registration_error(self):
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Text('An error occurred during the registration process', justification='center',
-                                    pad=((0, 0), (140, 0)))],
-                           [sg.Text("Please try again", justification='center')],
-                           [sg.Button('Home')]]
+            self.layout = [
+                [sg.Image(self.assets_path + "error.png", pad=((0, 0), (90, 0)))],
+                [sg.Text('An error occurred during the registration process', justification='center', pad=((0, 0), (20, 0)))],
+                [sg.Text("Please try again", justification='center')],
+                [sg.Button('Home', pad=(0, 5))]]
             window = sg.Window("Error in registration", self.layout, size=(720, 380), element_justification='center')
 
             while True:
@@ -436,7 +437,6 @@ class GUI:
 
         except Exception as err:
             sg.popup(err)
-            window.close()
 
     # ############################################ #
     #              FACE AUTHENTICATION             #
@@ -448,7 +448,8 @@ class GUI:
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Text('Please, introduce your email so we can start.', justification='center', pad=((0, 0), (120, 10)))],
+            self.layout = [[sg.Text('Please, introduce your email so we can start.', justification='center',
+                                    pad=((0, 0), (120, 10)))],
                            [sg.Text('Email', size=(8, 1)), sg.InputText(key='email_authentication')],
                            [sg.Text("", key="email_warning", pad=((0, 0), (0, 10)), text_color=sg.rgb(255, 0, 0))],
                            [sg.Cancel(pad=(5, 10)), sg.Submit(pad=(5, 10))]]
@@ -488,7 +489,7 @@ class GUI:
         # Interface layout
         # ------------------------
         tries = 0
-        sleep = 15      # so that the first frame is not grabbed immediately and the info can be displayed
+        sleep = 15  # so that the first frame is not grabbed immediately and the info can be displayed
         try:
             self.layout = [[sg.Text("Please, look into the camera")],
                            [sg.Image("", key='auth_face')],
@@ -556,7 +557,8 @@ class GUI:
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Text('Face authentication was successful', pad=((0, 0), (120, 0)), font=(None, 12))],
+            self.layout = [[sg.Image(self.assets_path + "success.png", pad=((0, 0), (90, 0)))],
+                           [sg.Text('Face authentication was successful', pad=((0, 0), (20, 0)), font=(None, 12))],
                            [sg.Text("Click next to start voice authentication")],
                            [sg.Button("Next", key="next_btn")]]
             window = sg.Window("SUCCESSFUL FACE AUTHENTICATION", self.layout, size=(720, 380),
@@ -658,7 +660,7 @@ class GUI:
                 elif not sample and feedback_ready and not pid:
                     pid = threading.Thread(
                         target=self.gui_listener_wrapper,
-                        args=(window, ),
+                        args=(window,),
                         daemon=True
                     )
                     pid.start()
@@ -676,7 +678,8 @@ class GUI:
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Text('SUCCESS! YOU ARE AUTHENTICATED', pad=((0, 0), (150, 10)))],
+            self.layout = [[sg.Image(self.assets_path + "success.png", pad=((0, 0), (100, 0)))],
+                           [sg.Text('SUCCESS! YOU ARE AUTHENTICATED', pad=((0, 0), (20, 10)))],
                            [sg.Button("Home")]]
             window = sg.Window("SUCCESSFUL AUTHENTICATION", self.layout, size=(720, 380),
                                element_justification='center')
@@ -699,7 +702,8 @@ class GUI:
         # Interface layout
         # ------------------------
         try:
-            self.layout = [[sg.Text('FAILED TO AUTHENTICATE USER', pad=((0, 0), (150, 10)))],
+            self.layout = [[sg.Image(self.assets_path + "error.png", pad=((0, 0), (100, 0)))],
+                           [sg.Text('FAILED TO AUTHENTICATE USER', pad=((0, 0), (20, 10)))],
                            [sg.Button("Home")]]
             window = sg.Window("FAILED TO AUTHENTICATE USER", self.layout, size=(720, 380),
                                element_justification='center')

@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import os
+import threading
 import PySimpleGUI as sg
 import cv2
 
@@ -45,7 +46,8 @@ class GUI:
                     break
                 if event == self.registration:
                     window.close()
-                    GUI.win_registration(self)
+                    # GUI.win_registration(self)
+                    GUI.win_registration_voice(self)
 
                 if event == self.authentication:
                     window.close()
@@ -263,6 +265,14 @@ class GUI:
     # ############################################ #
     #               VOICE ENROLLMENT               #
     # ############################################ #
+    def gui_listener_wrapper(self, window):
+        print("Starting listening")
+        sample = self.voice_authentication.listen()
+        try:
+            window.write_event_value("SAMPLE COLLECTED", sample)
+        except Exception:
+            return
+        return
 
     # voice registration window
     def win_registration_voice(self):
@@ -284,6 +294,7 @@ class GUI:
             feedback_ready, passphrase_ready = False, False
             show_warning = False
             sample = None
+            pid = None
 
             _passphrase = self.voice_authentication.generate_passphrase()
             input_str = "Please say the following words"
@@ -347,6 +358,7 @@ class GUI:
                     passphrase_ready = True
 
                 elif not sample and not feedback_ready:
+                    self.voice_authentication.adjust_for_ambient()
                     window["voice_registration"].update(filename=mic_on_path)
                     feedback_ready = True
 
@@ -358,16 +370,25 @@ class GUI:
                 elif sample and not feedback_ready:
                     if self.voice_authentication.validate_passphrase(_passphrase, sample):
                         audio_samples.append(sample)
-                        sample = None
                         show_warning = False
                         passphrase_ready = False
                         sample_count += 1
                     else:
-                        sample = None
                         show_warning = True
+                    sample = None
+                    pid = None
 
-                elif sample_count < sample_size:
-                    sample = self.voice_authentication.listen()
+                elif sample_count < sample_size and not pid:
+                    pid = threading.Thread(
+                        target=self.gui_listener_wrapper,
+                        args=(window, ),
+                        daemon=True
+                    )
+                    pid.start()
+                    # sample = self.voice_authentication.listen()
+
+                elif event == "SAMPLE COLLECTED":
+                    sample = values["SAMPLE COLLECTED"]
 
         except Exception as err:
             sg.popup(err)

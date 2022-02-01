@@ -253,23 +253,31 @@ class VoiceAuthentication:
 
         return db.get_user_passphrase_by_email(email)
 
-    def listen(self):
+    def adjust_for_ambient(self):
         """
-        Function used to obtain an audio sample from the microphone and adjusting it for ambient noises.
-
-        :return: audio sample obtained form the mic.
+        Function used to adjust the recognizer to ambient noises.
         """
         self.__recognizer = Recognizer()
         mic = Microphone()
-
         with mic as source:
             self.__recognizer.adjust_for_ambient_noise(source, duration=0.8)
             print("[LOG] Adjustments made.")
+
+    def listen(self):
+        """
+        Function used to obtain an audio sample from the microphone.
+
+        :return: audio sample obtained form the mic.
+        """
+        if not self.__recognizer:
+            self.__recognizer = Recognizer()
+        mic = Microphone()
+
+        with mic as source:
             try:
                 audio = self.__recognizer.listen(source, timeout=2)
             except speech_recognition.WaitTimeoutError:
                 return None
-
             print("[LOG] Finished listening.")
 
         return audio

@@ -588,7 +588,7 @@ class GUI:
                                     visible=False, text_color=sg.rgb(255, 0, 0))],
                            [sg.Text("Please say the following words", key="message")],
                            [sg.Text("", key="passphrase", font=(None, 15), relief=sg.RELIEF_RAISED)],
-                           [sg.Button('Close', key="close_btn")]]
+                           [sg.Cancel()]]
             window = sg.Window('IMAGE', self.layout, size=(720, 380), element_justification='center')
             feedback_ready, passphrase_ready = False, False
             show_warning = False
@@ -604,11 +604,10 @@ class GUI:
 
             while True:
                 event, values = window.read(timeout=20)
-                print(event, values)
 
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
-                if event == sg.Button('Close') or event == 'close_btn':
+                if event == sg.Cancel() or event == 'Cancel':
                     window.close()
                     GUI.win_authentication(self)
 

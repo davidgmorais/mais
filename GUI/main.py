@@ -46,8 +46,7 @@ class GUI:
                     break
                 if event == self.registration:
                     window.close()
-                    # GUI.win_registration(self)
-                    GUI.win_registration_voice(self)
+                    GUI.win_registration(self)
 
                 if event == self.authentication:
                     window.close()
@@ -573,6 +572,7 @@ class GUI:
             feedback_ready, passphrase_ready = False, False
             show_warning = False
             sample = None
+            pid = None
 
             _passphrase = self.voice_authentication.get_user_passphrase(
                 self.authentication_values['email_authentication'])
@@ -589,7 +589,7 @@ class GUI:
                     break
                 if event == sg.Button('Close') or event == 'close_btn':
                     window.close()
-                    GUI.win_registration(self)
+                    GUI.win_authentication(self)
 
                 # show warning
                 if show_warning:
@@ -604,6 +604,7 @@ class GUI:
 
                 # switch the micro image to the on version
                 elif not sample and not feedback_ready:
+                    self.voice_authentication.adjust_for_ambient()
                     window["voice_registration"].update(filename=mic_on_path)
                     feedback_ready = True
 
@@ -634,8 +635,17 @@ class GUI:
                         show_warning = True
 
                 # take an audio sample
-                elif not sample and feedback_ready:
-                    sample = self.voice_authentication.listen()
+                elif not sample and feedback_ready and not pid:
+                    pid = threading.Thread(
+                        target=self.gui_listener_wrapper,
+                        args=(window, ),
+                        daemon=True
+                    )
+                    pid.start()
+                    # sample = self.voice_authentication.listen()
+
+                elif event == "SAMPLE COLLECTED":
+                    sample = values["SAMPLE COLLECTED"]
 
         except Exception as err:
             sg.popup(err)

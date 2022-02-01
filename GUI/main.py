@@ -758,7 +758,7 @@ class GUI:
 
                  [sg.Text("Face Auth rate:"), sg.Text('{0:.2f}'.format(_face_auth_rate) + "%", pad=((0, 80), (0, 0)), key="face_auth_rate", text_color=sg.rgb(34, 178, 34) if _face_auth_rate > self.face_recognition.confidence else sg.rgb(178, 34, 34)),
                   sg.Text("Voice Auth rate:"), sg.Text('{0:.2f}'.format(_voice_auth_rate) + "%", pad=((0, 80), (0, 0)), key="voice_auth_rate", text_color=sg.rgb(34, 178, 34) if _voice_auth_rate > self.voice_authentication.log_likelihood_threshold + 100 else sg.rgb(178, 34, 34)),
-                  sg.Text("MAIS auth rate:"), sg.Text('{0:.2f}'.format(_mais_auth_rate) + "%", pad=((0, 80), (0, 0)), key="auth_rate", text_color=sg.rgb(34, 178, 34) if _mais_auth_rate > (self.voice_authentication.log_likelihood_threshold + 100 + self.face_recognition.confidence) / 2 else sg.rgb(178, 34, 34)),]],
+                  sg.Text("MAIS auth rate:"), sg.Text('{0:.2f}'.format(_mais_auth_rate) + "%", pad=((0, 80), (0, 0)), key="auth_rate", text_color=sg.rgb(34, 178, 34) if _mais_auth_rate > (self.voice_authentication.log_likelihood_threshold + 100 + self.face_recognition.confidence) / 2 else sg.rgb(178, 34, 34))]],
 
                 [sg.ButtonMenu("Sort", sort_types, key="sort")],
 

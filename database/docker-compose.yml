@@ -1,0 +1,20 @@
+version: '3.7'
+
+services:
+  db:
+    image: 'mysql/mysql-server:latest'
+    container_name: 'mais-db'
+    environment:
+      MYSQL_ROOT_PASSWORD: _secret
+      MYSQL_DATABASE: mais
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: pass
+    ports:
+      - '3306:3306'
+    volumes:
+      - mais-data:/var/lib/mysql
+      - ./mais.sql:/docker-entrypoint-initdb.d/mais.sql
+
+volumes:
+  mais-data:
+

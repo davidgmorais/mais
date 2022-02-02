@@ -189,6 +189,30 @@ class DatabaseManager:
         return True
 
     # record methods
+    def __check_for_duplicate_records(self, user_id, module, status, date):
+        if not self.__conn:
+            return None
+        if module not in ['Face ID', 'Voice ID']:
+            return None
+        if status not in ["SUCCEEDED", "FAILED"]:
+            return None
+
+        print("Checking for duplicates")
+        try:
+            query = "SELECT id, date FROM RECORD WHERE type = %s AND  user_id = %s AND status = %s"
+            cursor = self.__conn.cursor()
+            cursor.execute(query, [module, user_id, status])
+            records = cursor.fetchall()
+            cursor.close()
+            for record_id, record_date in records:
+                elapsed = date - datetime.datetime.strptime(record_date, '%Y-%m-%d %H:%M:%S')
+                if abs(elapsed) < datetime.timedelta(seconds=2):
+                    return record_id
+
+        except mysql.connector.Error as err:
+            print(err)
+        return None
+
     def log_record(self, user_id, module, status):
         if not self.__conn:
             return None
@@ -198,9 +222,19 @@ class DatabaseManager:
             _date = datetime.datetime.now()
             _formatted_date = _date.strftime('%Y-%m-%d %H:%M:%S')
             _status = "SUCCEEDED" if status else "FAILED"
-            query = "INSERT INTO RECORD (date, type, status, user_id) VALUES (%s, %s, %s, %s);"
+
+            record_id = self.__check_for_duplicate_records(user_id, module, _status, _date)
+            print(record_id)
+            if record_id:
+                query = "UPDATE RECORD SET date = %s, status = %s WHERE id = %s"
+                values = [_formatted_date, _status, record_id]
+
+            else:
+                query = "INSERT INTO RECORD (date, type, status, user_id) VALUES (%s, %s, %s, %s);"
+                values = [_formatted_date, module, _status, user_id]
+
             cursor = self.__conn.cursor()
-            cursor.execute(query, [_formatted_date, module, _status, user_id])
+            cursor.execute(query, values)
             cursor.close()
             self.__conn.commit()
         except mysql.connector.Error as err:

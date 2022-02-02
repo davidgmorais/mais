@@ -351,13 +351,17 @@ class GUI:
                     window['warning'].update(visible=False)
 
                 if sample_count >= sample_size:
-                    window["voice_registration"].update(filename=mic_off_path)
-                    sample = None
-                    show_warning = False
-                    window['message'].update("Audio samples obtained successfully")
-                    window['close_btn'].update(visible=False)
-                    window['passphrase'].update(visible=False)
-                    window['continue_btn'].update(visible=True)
+                    try:
+                        window["voice_registration"].update(filename=mic_off_path)
+                        sample = None
+                        show_warning = False
+                        window['message'].update("Audio samples obtained successfully")
+                        window['close_btn'].update(visible=False)
+                        window['passphrase'].update(visible=False)
+                        window['continue_btn'].update(visible=True)
+                    except Exception:
+                        sample = None
+                        show_warning = False
 
                 elif not passphrase_ready:
                     window['message'].update(value=input_str + suffixes[sample_count])
@@ -756,14 +760,28 @@ class GUI:
                 [[sg.Text("Total users:"), sg.Text(self.face_recognition.get_user_count(), key="total_users")],
                  [sg.HorizontalSeparator(pad=((0, 0), (0, 10)))],
 
-                 [sg.Text("Face Auth rate:"), sg.Text('{0:.2f}'.format(_face_auth_rate) + "%", pad=((0, 80), (0, 0)), key="face_auth_rate", text_color=sg.rgb(34, 178, 34) if _face_auth_rate > self.face_recognition.confidence else sg.rgb(178, 34, 34)),
-                  sg.Text("Voice Auth rate:"), sg.Text('{0:.2f}'.format(_voice_auth_rate) + "%", pad=((0, 80), (0, 0)), key="voice_auth_rate", text_color=sg.rgb(34, 178, 34) if _voice_auth_rate > self.voice_authentication.log_likelihood_threshold + 100 else sg.rgb(178, 34, 34)),
-                  sg.Text("MAIS auth rate:"), sg.Text('{0:.2f}'.format(_mais_auth_rate) + "%", pad=((0, 80), (0, 0)), key="auth_rate", text_color=sg.rgb(34, 178, 34) if _mais_auth_rate > (self.voice_authentication.log_likelihood_threshold + 100 + self.face_recognition.confidence) / 2 else sg.rgb(178, 34, 34))]],
+                 [sg.Text("Face Auth rate:"),
+                  sg.Text('{0:.2f}'.format(_face_auth_rate) + "%", pad=((0, 70), (0, 0)), key="face_auth_rate",
+                          text_color=sg.rgb(34, 178,
+                                            34) if _face_auth_rate > self.face_recognition.confidence else sg.rgb(178,
+                                                                                                                  34,
+                                                                                                                  34)),
+                  sg.Text("Voice Auth rate:"),
+                  sg.Text('{0:.2f}'.format(_voice_auth_rate) + "%", pad=((0, 70), (0, 0)), key="voice_auth_rate",
+                          text_color=sg.rgb(34, 178,
+                                            34) if _voice_auth_rate > self.voice_authentication.log_likelihood_threshold + 100 else sg.rgb(
+                              178, 34, 34)),
+                  sg.Text("MAIS auth rate:"),
+                  sg.Text('{0:.2f}'.format(_mais_auth_rate) + "%", pad=((0, 70), (0, 0)), key="auth_rate",
+                          text_color=sg.rgb(34, 178, 34) if _mais_auth_rate > (
+                                      self.voice_authentication.log_likelihood_threshold + 100 + self.face_recognition.confidence) / 2 else sg.rgb(
+                              178, 34, 34))]],
 
                 [sg.ButtonMenu("Sort", sort_types, key="sort")] if len(data) > 0 else [],
 
                 [sg.Table(values=data, key="records", headings=["User", "Date", "Status", "Type"],
-                          justification='center', auto_size_columns=False, col_widths=[340, 340, 10, 10], expand_y=True, expand_x=True)] if len(data) > 0 else
+                          justification='center', auto_size_columns=False, col_widths=[30, 20, 12, 12, ], expand_y=True,
+                          expand_x=False)] if len(data) > 0 else
                 [sg.Text("There are no records of authentication yet", pad=((175, 0), (120, 0)), font=10)]
             ]
             window = sg.Window("DASHBOARD", self.layout, size=(720, 380))

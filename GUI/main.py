@@ -275,10 +275,11 @@ class GUI:
     def gui_listener_wrapper(self, window):
         print("Starting listening")
         sample = self.voice_authentication.listen()
-        try:
-            window.write_event_value("SAMPLE COLLECTED", sample)
-        except Exception:
-            return
+        if window:
+            try:
+                window.write_event_value("SAMPLE COLLECTED", sample)
+            except Exception:
+                return
         return
 
     # voice registration window
@@ -399,7 +400,8 @@ class GUI:
                     # sample = self.voice_authentication.listen()
 
                 elif event == "SAMPLE COLLECTED":
-                    sample = values["SAMPLE COLLECTED"]
+                    if window and values:
+                        sample = values["SAMPLE COLLECTED"]
 
         except Exception as err:
             sg.popup(err)
@@ -682,7 +684,8 @@ class GUI:
                     # sample = self.voice_authentication.listen()
 
                 elif event == "SAMPLE COLLECTED":
-                    sample = values["SAMPLE COLLECTED"]
+                    if window and values:
+                        sample = values["SAMPLE COLLECTED"]
 
         except Exception as err:
             sg.popup(err)

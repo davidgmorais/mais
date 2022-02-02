@@ -229,6 +229,9 @@ class VoiceAuthentication:
         if not self.__recognizer:
             self.__recognizer = Recognizer()
 
+        if not isinstance(audio, speech_recognition.AudioData):
+            return False
+
         try:
             recognized_passphrase = self.__recognizer.recognize_google(audio)
         except speech_recognition.UnknownValueError:
@@ -276,8 +279,9 @@ class VoiceAuthentication:
 
         with mic as source:
             try:
-                audio = self.__recognizer.listen(source, timeout=2)
+                audio = self.__recognizer.listen(source, timeout=3, phrase_time_limit=3)
             except speech_recognition.WaitTimeoutError:
+                print("[LOG] TIMEOUT: Forced finished listening")
                 return None
             print("[LOG] Finished listening.")
 

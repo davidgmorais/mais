@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 import os
 import threading
+import traceback
+
 import PySimpleGUI as sg
 import cv2
 
@@ -315,6 +317,7 @@ class GUI:
                 if event == sg.Button('Close') or event == 'close_btn':
                     window.close()
                     GUI.win_registration(self)
+                    break
                 if event == sg.Button("Continue") or event == "continue_btn":
 
                     if self.register_values and self.register_values.get("email_registration") and \
@@ -400,7 +403,11 @@ class GUI:
                     # sample = self.voice_authentication.listen()
 
                 elif event == "SAMPLE COLLECTED":
-                    if window and values:
+                    if not values["SAMPLE COLLECTED"]:
+                        show_warning = True
+                        sample = TimeoutError
+                    else:
+                        show_warning = False
                         sample = values["SAMPLE COLLECTED"]
 
         except Exception as err:
@@ -601,14 +608,14 @@ class GUI:
 
         try:
             self.layout = [[sg.Image(mic_off_path, key='voice_registration', pad=(0, 20))],
-                           [sg.Text("The words spoken aren't entirely correct. Try again...", key="warning",
+                           [sg.Text("", key="warning",
                                     visible=False, text_color=sg.rgb(255, 0, 0))],
                            [sg.Text("Please say the following words", key="message")],
                            [sg.Text("", key="passphrase", font=(None, 15), relief=sg.RELIEF_RAISED)],
                            [sg.Cancel()]]
             window = sg.Window('IMAGE', self.layout, size=(720, 380), element_justification='center')
             feedback_ready, passphrase_ready = False, False
-            show_warning = False
+            show_warning = None
             sample = None
             pid = None
 
@@ -627,10 +634,12 @@ class GUI:
                 if event == sg.Cancel() or event == 'Cancel':
                     window.close()
                     GUI.win_authentication(self)
+                    break
 
                 # show warning
                 if show_warning:
                     window['warning'].update(visible=True)
+                    window['warning'].update(value=show_warning)
                 else:
                     window['warning'].update(visible=False)
 
@@ -649,13 +658,15 @@ class GUI:
                 elif sample and feedback_ready:
                     window["voice_registration"].update(filename=mic_off_path)
                     feedback_ready = False
-                    show_warning = False
+                    if show_warning == "You can speak now, red mic says go!":
+                        sample = None
+                        pid = None
 
                 # validate the passphrase
                 elif sample and not feedback_ready:
                     pid = None
                     if self.voice_authentication.validate_passphrase(_passphrase, sample):
-                        show_warning = False
+                        show_warning = None
                         passphrase_ready = False
                         print("valid")
 
@@ -671,7 +682,7 @@ class GUI:
                     # passphrase invalid, show warning
                     else:
                         sample = None
-                        show_warning = True
+                        show_warning = "The words spoken aren't entirely correct. Try again..."
 
                 # take an audio sample
                 elif not sample and feedback_ready and not pid:
@@ -681,11 +692,15 @@ class GUI:
                         daemon=True
                     )
                     pid.start()
-                    # sample = self.voice_authentication.listen()
 
                 elif event == "SAMPLE COLLECTED":
                     if window and values:
-                        sample = values["SAMPLE COLLECTED"]
+                        if not values["SAMPLE COLLECTED"]:
+                            show_warning = "You can speak now, red mic says go!"
+                            sample = TimeoutError
+                        else:
+                            show_warning = None
+                            sample = values["SAMPLE COLLECTED"]
 
         except Exception as err:
             sg.popup(err)
@@ -777,7 +792,7 @@ class GUI:
                   sg.Text("MAIS auth rate:"),
                   sg.Text('{0:.2f}'.format(_mais_auth_rate) + "%", pad=((0, 70), (0, 0)), key="auth_rate",
                           text_color=sg.rgb(34, 178, 34) if _mais_auth_rate > (
-                                      self.voice_authentication.log_likelihood_threshold + 100 + self.face_recognition.confidence) / 2 else sg.rgb(
+                                  self.voice_authentication.log_likelihood_threshold + 100 + self.face_recognition.confidence) / 2 else sg.rgb(
                               178, 34, 34))]],
 
                 [sg.ButtonMenu("Sort", sort_types, key="sort")] if len(data) > 0 else [],

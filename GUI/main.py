@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 import os
 import threading
-import traceback
 
 import PySimpleGUI as sg
 import cv2
@@ -288,6 +287,7 @@ class GUI:
     def win_registration_voice(self):
         mic_off_path = self.assets_path + "off.png"
         mic_on_path = self.assets_path + "on.png"
+        reload_path = self.assets_path + "reload.png"
 
         try:
             self.layout = [[sg.Image(mic_off_path, key='voice_registration', pad=(0, 20))],
@@ -296,6 +296,7 @@ class GUI:
                            [sg.Text("", key="message")],
                            [sg.Text("", key="passphrase", font=(None, 15), relief=sg.RELIEF_RAISED)],
                            [sg.Button('Close', key="close_btn"),
+                            sg.Button(image_filename=reload_path, key="regen_pass", tooltip="Are these words too hard for you? Generate a new passphrase"),
                             sg.Button("Continue", visible=False, key="continue_btn")]]
             window = sg.Window('IMAGE', self.layout, size=(720, 380), element_justification='center')
             audio_samples = []
@@ -318,6 +319,18 @@ class GUI:
                     window.close()
                     GUI.win_registration(self)
                     break
+                if event == "regen_pass":
+                    restart = sg.popup_ok_cancel(
+                        "Are you sure you want to generate a new passphrase?",
+                        "All the progress you've done in the voice enrollment will be erased and will have to be restarted",
+                        title="Generate a new passphrase?",
+                        keep_on_top=True
+                    )
+                    if restart == "OK":
+                        window.close()
+                        GUI.win_registration_voice(self)
+                        break
+
                 if event == sg.Button("Continue") or event == "continue_btn":
 
                     if self.register_values and self.register_values.get("email_registration") and \
@@ -334,19 +347,23 @@ class GUI:
                         else:
                             window.close()
                             GUI.win_registration_error(self)
+                            break
 
                         if self.voice_authentication.register(email, " ".join(_passphrase), audio_samples):
                             print("User registered with success in voice recognition module")
                             window.close()
                             GUI.win_registration_voice_success(self)
+                            break
                         else:
                             self.face_recognition.remove_user(email)
                             window.close()
                             GUI.win_registration_error(self)
+                            break
 
                     else:
                         window.close()
                         GUI.win_registration_error(self)
+                        break
 
                 # show warning
                 if show_warning:
@@ -361,6 +378,7 @@ class GUI:
                         show_warning = False
                         window['message'].update("Audio samples obtained successfully")
                         window['close_btn'].update(visible=False)
+                        window['regen_pass'].update(visible=False)
                         window['passphrase'].update(visible=False)
                         window['continue_btn'].update(visible=True)
                     except Exception:
@@ -675,9 +693,11 @@ class GUI:
                                                                   sample):
                             window.close()
                             GUI.win_authentication_success(self)
+                            break
                         else:
                             window.close()
                             GUI.win_authentication_fail(self)
+                            break
 
                     # passphrase invalid, show warning
                     else:

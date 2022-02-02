@@ -56,10 +56,10 @@ pip3 install -r requirements.txt
 ```bash
 docker-compose up -d --build
 ```
-**Note:** For subsequent uses, and after the image has been built, to restart the docker containers you may simply run:
+**Note:** For subsequent uses, and after the image has been built, to restart the docker container you may simply run:
 ```bash
 docker-compose up -d
 ```
 
 ### Alternative to docker-compose
-Without docker, a MySQL database should be created instead, using the credentials present in the `docker-file.yml` and with the schema shown in the file `mais.sql`, both available in the database directory.
+Without docker, a MySQL database should be created instead, using the credentials present in the `docker-compose.yml` and with the schema shown in the file `mais.sql`, both available in the database directory.

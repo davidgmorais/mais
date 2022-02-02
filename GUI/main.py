@@ -296,7 +296,8 @@ class GUI:
                            [sg.Text("", key="message")],
                            [sg.Text("", key="passphrase", font=(None, 15), relief=sg.RELIEF_RAISED)],
                            [sg.Button('Close', key="close_btn"),
-                            sg.Button(image_filename=reload_path, key="regen_pass", tooltip="Are these words too hard for you? Generate a new passphrase"),
+                            sg.Button(image_filename=reload_path, key="regen_pass",
+                                      tooltip="Are these words too hard for you? Generate a new passphrase"),
                             sg.Button("Continue", visible=False, key="continue_btn")]]
             window = sg.Window('IMAGE', self.layout, size=(720, 380), element_justification='center')
             audio_samples = []
@@ -778,6 +779,7 @@ class GUI:
     # ############################################ #
     def win_dashboard(self):
         sort_types = ["Sort", ['By latest', 'By oldest', 'By email']]
+        filter_types = ["Filter", ["All", "Succeeded", "Failed", "Face ID", "Voice ID"]]
 
         _face_records = self.face_recognition.get_records()
         _face_success_count = len([rec for rec in _face_records if rec[2] == "SUCCEEDED"])
@@ -815,7 +817,9 @@ class GUI:
                                   self.voice_authentication.log_likelihood_threshold + 100 + self.face_recognition.confidence) / 2 else sg.rgb(
                               178, 34, 34))]],
 
-                [sg.ButtonMenu("Sort", sort_types, key="sort")] if len(data) > 0 else [],
+                [sg.ButtonMenu("Sort", sort_types, key="sort"), sg.Text("By latest", key="sort_label") if len(data) > 0 else [],
+                 sg.ButtonMenu("Filter", filter_types, pad=((20, 0), (0, 0)), key="filter"), sg.Text("All", key="filter_label") if len(data) > 0 else [],
+                 sg.Text("User: ", pad=((20, 0), (0, 0))), sg.InputText(key="user", size=(20, 1), enable_events=True)] if len(data) > 0 else [],
 
                 [sg.Table(values=data, key="records", headings=["User", "Date", "Status", "Type"],
                           justification='center', auto_size_columns=False, col_widths=[30, 20, 12, 12, ], expand_y=True,
@@ -826,7 +830,6 @@ class GUI:
 
             while True:
                 event, values = window.read()
-                print(event, values)
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
 
@@ -834,15 +837,33 @@ class GUI:
                     window.close()
                     GUI.__init__(self, self.face_detector, self.face_recognition, self.voice_authentication)
 
-                if (event == sg.Button("Sort") or event == "sort") and len(data) > 0:
+                if (event == "filter" or event == "sort" or event == "user") and len(data) > 0:
+                    shown_data = data
+
+                    _filter = values["filter"]
+                    if _filter == "Succeeded":
+                        shown_data = [record for record in data if record[2] == "SUCCEEDED"]
+                    elif _filter == "Failed":
+                        shown_data = [record for record in data if record[2] == "FAILED"]
+                    elif _filter == "Face ID":
+                        shown_data = [record for record in data if record[3] == "Face ID"]
+                    elif _filter == "Voice ID":
+                        shown_data = [record for record in data if record[3] == "Voice ID"]
+
+                    _user = values["user"]
+                    if _user != "":
+                        shown_data = [record for record in shown_data if _user in record[0]]
+
                     _sort = values['sort']
-                    if _sort == "By latest":
-                        data = sorted(data, key=lambda row: row[1], reverse=True)
-                    elif _sort == "By oldest":
-                        data = sorted(data, key=lambda row: row[1])
+                    if _sort == "By oldest":
+                        shown_data = sorted(shown_data, key=lambda row: row[1])
                     elif _sort == "By email":
-                        data = sorted(data, key=lambda row: row[0])
-                    window['records'].update(values=data)
+                        shown_data = sorted(shown_data, key=lambda row: row[0])
+                    else:
+                        shown_data = sorted(shown_data, key=lambda row: row[1], reverse=True)
+                    window['records'].update(values=shown_data)
+                    window['sort_label'].update(value=_sort)
+                    window['filter_label'].update(value=_filter)
 
         except Exception as err:
             sg.popup(err)

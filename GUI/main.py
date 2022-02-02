@@ -760,10 +760,11 @@ class GUI:
                   sg.Text("Voice Auth rate:"), sg.Text('{0:.2f}'.format(_voice_auth_rate) + "%", pad=((0, 80), (0, 0)), key="voice_auth_rate", text_color=sg.rgb(34, 178, 34) if _voice_auth_rate > self.voice_authentication.log_likelihood_threshold + 100 else sg.rgb(178, 34, 34)),
                   sg.Text("MAIS auth rate:"), sg.Text('{0:.2f}'.format(_mais_auth_rate) + "%", pad=((0, 80), (0, 0)), key="auth_rate", text_color=sg.rgb(34, 178, 34) if _mais_auth_rate > (self.voice_authentication.log_likelihood_threshold + 100 + self.face_recognition.confidence) / 2 else sg.rgb(178, 34, 34))]],
 
-                [sg.ButtonMenu("Sort", sort_types, key="sort")],
+                [sg.ButtonMenu("Sort", sort_types, key="sort")] if len(data) > 0 else [],
 
                 [sg.Table(values=data, key="records", headings=["User", "Date", "Status", "Type"],
-                          justification='center', auto_size_columns=True, expand_y=True, expand_x=True)]
+                          justification='center', auto_size_columns=False, col_widths=[340, 340, 10, 10], expand_y=True, expand_x=True)] if len(data) > 0 else
+                [sg.Text("There are no records of authentication yet", pad=((175, 0), (120, 0)), font=10)]
             ]
             window = sg.Window("DASHBOARD", self.layout, size=(720, 380))
 
@@ -777,7 +778,7 @@ class GUI:
                     window.close()
                     GUI.__init__(self, self.face_detector, self.face_recognition, self.voice_authentication)
 
-                if event == sg.Button("Sort") or event == "sort":
+                if (event == sg.Button("Sort") or event == "sort") and len(data) > 0:
                     _sort = values['sort']
                     if _sort == "By latest":
                         data = sorted(data, key=lambda row: row[1], reverse=True)

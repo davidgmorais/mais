@@ -22,7 +22,7 @@ Hence, the project shifted to a more localized approach using the built-in hardw
 ## Team
 [93147	David Morais](https://github.com/davidgmorais)	
 
-[106722	Emanuel Krzystoǹ](https://github.com/emanuelkrzyszton)
+[106722	Emanuel Krzysztoń](https://github.com/emanuelkrzyszton)
 
 [105428	Gerson Carlos Marques Catito](https://github.com/GersonCatito)
 

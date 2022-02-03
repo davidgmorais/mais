@@ -115,11 +115,64 @@ class DatabaseManager:
         if not self.__conn:
             return False
 
-        passphrase_query = "UPDATE USER SET passphrase = %s WHERE id = %s;"
+        try:
+            passphrase_query = "UPDATE USER SET passphrase = %s WHERE id = %s;"
+            cursor = self.__conn.cursor()
+            cursor.execute(passphrase_query, [passphrase, user_id])
+            cursor.close()
+            self.__conn.commit()
+        except mysql.connector.Error as err:
+            print(err)
+            return False
+        return True
+
+    def give_admin_privileges_by_email(self, email):
+        if not self.__conn:
+            return None
+        if not self.user_exists_by_email(email):
+            return False
+
+        try:
+            query = "UPDATE USER SET admin_flag = 1 WHERE email = %s"
+            cursor = self.__conn.cursor()
+            cursor.execute(query, [email])
+            cursor.close()
+            self.__conn.commit()
+        except mysql.connector.Error as err:
+            print(err)
+            return False
+        return True
+
+    def remove_admin_privileges_by_email(self, email):
+        if not self.__conn:
+            return None
+        if not self.user_exists_by_email(email):
+            return False
+
+        try:
+            query = "UPDATE USER SET admin_flag = 0 WHERE email = %s"
+            cursor = self.__conn.cursor()
+            cursor.execute(query, [email])
+            cursor.close()
+            self.__conn.commit()
+        except mysql.connector.Error as err:
+            print(err)
+            return False
+        return True
+
+    def is_admin_by_email(self, email):
+        if not self.__conn:
+            return None
+
+        query = "SELECT admin_flag FROM USER WHERE email = %s"
         cursor = self.__conn.cursor()
-        cursor.execute(passphrase_query, [passphrase, user_id])
+        cursor.execute(query, [email])
+        user = cursor.fetchall()
         cursor.close()
-        self.__conn.commit()
+        if len(user) != 1:
+            return False
+        is_admin = user[0][0]
+        return is_admin
 
     # image methods
     def get_images_by_user(self, user_id):
@@ -197,7 +250,6 @@ class DatabaseManager:
         if status not in ["SUCCEEDED", "FAILED"]:
             return None
 
-        print("Checking for duplicates")
         try:
             query = "SELECT id, date FROM RECORD WHERE type = %s AND  user_id = %s AND status = %s"
             cursor = self.__conn.cursor()
@@ -224,7 +276,6 @@ class DatabaseManager:
             _status = "SUCCEEDED" if status else "FAILED"
 
             record_id = self.__check_for_duplicate_records(user_id, module, _status, _date)
-            print(record_id)
             if record_id:
                 query = "UPDATE RECORD SET date = %s, status = %s WHERE id = %s"
                 values = [_formatted_date, _status, record_id]

@@ -27,6 +27,7 @@ class GUI:
         self.authentication_values = None
         self.assets_path = os.path.dirname(os.path.abspath(__file__)) + "/assets/"
         self.collected_images = []
+        self.dashboard_redirect = False
 
         try:
             # Buttons name's
@@ -44,7 +45,6 @@ class GUI:
             window = sg.Window("MAIS PROJECT!", self.layout, size=(720, 380), element_justification='center')
             while True:
                 event, values = window.read()
-                print(event, values)
                 # Closing window
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
@@ -57,8 +57,9 @@ class GUI:
                     GUI.win_authentication(self)
 
                 elif event == "dashboard":
+                    self.dashboard_redirect = True
                     window.close()
-                    GUI.win_dashboard(self)
+                    GUI.win_authentication(self)
 
         except Exception as err:
             sg.popup(err)
@@ -583,7 +584,7 @@ class GUI:
                             if self.capture_data:
                                 self.capture_data.release()
                                 self.capture_data = None
-                            print("\nFace authentication failed.")
+                            print("Face authentication failed.")
                             window.close()
                             GUI.win_authentication_fail(self)
 
@@ -685,9 +686,6 @@ class GUI:
                 elif sample and not feedback_ready:
                     pid = None
                     if self.voice_authentication.validate_passphrase(_passphrase, sample):
-                        show_warning = None
-                        passphrase_ready = False
-                        print("valid")
 
                         # authenticate
                         if self.voice_authentication.authenticate(self.authentication_values['email_authentication'],
@@ -734,7 +732,7 @@ class GUI:
         try:
             self.layout = [[sg.Image(self.assets_path + "success.png", pad=((0, 0), (100, 0)))],
                            [sg.Text('SUCCESS! YOU ARE AUTHENTICATED', pad=((0, 0), (20, 10)))],
-                           [sg.Button("Home")]]
+                           [sg.Button("Proceed to dashboard", key="dash") if self.dashboard_redirect else sg.Button("Home")]]
             window = sg.Window("SUCCESSFUL AUTHENTICATION", self.layout, size=(720, 380),
                                element_justification='center')
 
@@ -746,6 +744,9 @@ class GUI:
                 if event == sg.Button("Home") or event == "Home":
                     window.close()
                     GUI.__init__(self, self.face_detector, self.face_recognition, self.voice_authentication)
+                elif event == "dash":
+                    window.close()
+                    GUI.win_dashboard(self)
 
         except Exception as err:
             sg.popup(err)
@@ -778,21 +779,23 @@ class GUI:
     #                  DASHBOARD                   #
     # ############################################ #
     def win_dashboard(self):
-        sort_types = ["Sort", ['By latest', 'By oldest', 'By email']]
-        filter_types = ["Filter", ["All", "Succeeded", "Failed", "Face ID", "Voice ID"]]
+        justification = None
+        _email = self.authentication_values['email_authentication']
+        if self.face_recognition.is_admin(_email) and self.voice_authentication.is_admin(_email):
+            sort_types = ["Sort", ['By latest', 'By oldest', 'By email']]
+            filter_types = ["Filter", ["All", "Succeeded", "Failed", "Face ID", "Voice ID"]]
 
-        _face_records = self.face_recognition.get_records()
-        _face_success_count = len([rec for rec in _face_records if rec[2] == "SUCCEEDED"])
-        _face_auth_rate = (_face_success_count * 100 / len(_face_records)) if len(_face_records) > 0 else 0.0
+            _face_records = self.face_recognition.get_records()
+            _face_success_count = len([rec for rec in _face_records if rec[2] == "SUCCEEDED"])
+            _face_auth_rate = (_face_success_count * 100 / len(_face_records)) if len(_face_records) > 0 else 0.0
 
-        _voice_records = self.voice_authentication.get_records()
-        _voice_success_count = len([rec for rec in _voice_records if rec[2] == "SUCCEEDED"])
-        _voice_auth_rate = _voice_success_count * 100 / len(_voice_records) if len(_voice_records) > 0 else 0.0
+            _voice_records = self.voice_authentication.get_records()
+            _voice_success_count = len([rec for rec in _voice_records if rec[2] == "SUCCEEDED"])
+            _voice_auth_rate = _voice_success_count * 100 / len(_voice_records) if len(_voice_records) > 0 else 0.0
 
-        data = sorted(_face_records + _voice_records, key=lambda row: row[1], reverse=True)
-        _mais_auth_rate = (_face_success_count + _voice_success_count) * 100 / len(data) if len(data) > 0 else 0.0
+            data = sorted(_face_records + _voice_records, key=lambda row: row[1], reverse=True)
+            _mais_auth_rate = (_face_success_count + _voice_success_count) * 100 / len(data) if len(data) > 0 else 0.0
 
-        try:
             self.layout = [
                 [[sg.Text('DASHBOARD', font=(None, 18), pad=((0, 500), (0, 0))),
                   sg.Button(image_filename=self.assets_path + "logout.png", tooltip="Exit", key="exit")]],
@@ -817,27 +820,40 @@ class GUI:
                                   self.voice_authentication.log_likelihood_threshold + 100 + self.face_recognition.confidence) / 2 else sg.rgb(
                               178, 34, 34))]],
 
-                [sg.ButtonMenu("Sort", sort_types, key="sort"), sg.Text("By latest", key="sort_label") if len(data) > 0 else [],
-                 sg.ButtonMenu("Filter", filter_types, pad=((20, 0), (0, 0)), key="filter"), sg.Text("All", key="filter_label") if len(data) > 0 else [],
-                 sg.Text("User: ", pad=((20, 0), (0, 0))), sg.InputText(key="user", size=(20, 1), enable_events=True)] if len(data) > 0 else [],
+                [sg.ButtonMenu("Sort", sort_types, key="sort"),
+                 sg.Text("By latest", key="sort_label") if len(data) > 0 else [],
+                 sg.ButtonMenu("Filter", filter_types, pad=((20, 0), (0, 0)), key="filter"),
+                 sg.Text("All", key="filter_label") if len(data) > 0 else [],
+                 sg.Text("User: ", pad=((20, 0), (0, 0))),
+                 sg.InputText(key="user", size=(20, 1), enable_events=True)] if len(data) > 0 else [],
 
                 [sg.Table(values=data, key="records", headings=["User", "Date", "Status", "Type"],
                           justification='center', auto_size_columns=False, col_widths=[30, 20, 12, 12, ], expand_y=True,
                           expand_x=False)] if len(data) > 0 else
                 [sg.Text("There are no records of authentication yet", pad=((175, 0), (120, 0)), font=10)]
             ]
-            window = sg.Window("DASHBOARD", self.layout, size=(720, 380))
+
+        else:
+            data = None
+            self.layout = [[sg.Image(self.assets_path + "access_denied.png", pad=((0, 0), (90, 0)))],
+                           [sg.Text('ACCESS DENIED', pad=((0, 0), (20, 0)), font=(None, 12))],
+                           [sg.Text("This is not for you, you should probably go home.")],
+                           [sg.Button("Home", key="home_btn", pad=(0, 10))]]
+            justification = 'center'
+
+        try:
+            window = sg.Window("DASHBOARD", self.layout, element_justification=justification, size=(720, 380))
 
             while True:
                 event, values = window.read()
                 if event == sg.WIN_CLOSED or event == 'Exit':
                     break
 
-                if event == sg.Button("Exit") or event == "exit":
+                if event == sg.Button("Exit") or event == "exit" or event == sg.Button("Home") or event == "home_btn":
                     window.close()
                     GUI.__init__(self, self.face_detector, self.face_recognition, self.voice_authentication)
 
-                if (event == "filter" or event == "sort" or event == "user") and len(data) > 0:
+                if (event == "filter" or event == "sort" or event == "user") and data and len(data) > 0:
                     shown_data = data
 
                     _filter = values["filter"]

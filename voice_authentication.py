@@ -187,7 +187,6 @@ class VoiceAuthentication:
 
         gmm = GaussianMixture(n_components=16, max_iter=200, covariance_type='diag', n_init=3)
         gmm.fit(features)
-        print("[LOG] Modeling complete")
         self.__model_collection[user] = gmm
 
     def __extract_features(self, rate, audio):
@@ -239,7 +238,6 @@ class VoiceAuthentication:
 
         recognized_passphrase = recognized_passphrase.lower()
         print("[LOG] Recognized passphrase:", recognized_passphrase)
-        print(passphrase)
         if recognized_passphrase.split(" ") == passphrase:
             return True
         return False
@@ -283,7 +281,6 @@ class VoiceAuthentication:
             except speech_recognition.WaitTimeoutError:
                 print("[LOG] TIMEOUT: Forced finished listening")
                 return None
-            print("[LOG] Finished listening.")
 
         return audio
 
@@ -367,7 +364,6 @@ class VoiceAuthentication:
         scores = np.array(gmm.score(extracted))
         log_likelihood = scores.sum()
 
-        print("Likelihood:", log_likelihood)
         if log_likelihood > self.log_likelihood_threshold:
             os.remove(_dir + "/" + filename)
             self.__db.log_record(user_id, 'Voice ID', True)
@@ -377,14 +373,17 @@ class VoiceAuthentication:
         self.__db.log_record(user_id, 'Voice ID', False)
         return False
 
+    def is_admin(self, email):
+        return self.__db.is_admin_by_email(email)
+
     def get_records(self):
-        # TODO: add admin verifications ?
         records = self.__db.get_records("Voice ID")
         return records
 
 
 if __name__ == "__main__":
-    debug = "auth"
+    import sys
+    debug = sys.argv[1] if len(sys.argv) == 2 else None
     db = DatabaseManager()
     voice_auth = VoiceAuthentication(db, confidence=95)
 
@@ -419,7 +418,7 @@ if __name__ == "__main__":
     # ========================================================== #
     #                 Authentication main                        #
     # ========================================================== #
-    if debug == "auth":
+    elif debug == "auth":
         input_str = "Please say the passphrase:\n"
 
         _email = input("Email: ")
@@ -440,3 +439,6 @@ if __name__ == "__main__":
             print("User authenticated, welcome!")
         else:
             print("Failed Authentication")
+
+    else:
+        print("No recognized arguments")

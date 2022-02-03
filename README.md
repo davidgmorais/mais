@@ -63,3 +63,22 @@ docker-compose up -d
 
 ### Alternative to docker-compose
 Without docker, a MySQL database should be created instead, using the credentials present in the `docker-compose.yml` and with the schema shown in the file `mais.sql`, both available in the database directory.
+
+
+## Usage
+To run the system using the GUI, in the root directory of the project, just run
+```bash
+python3 mais.py
+```
+
+In order to grant admin privileges to a user, first register a user using the GUI, close the program and run
+```bash
+python3 mais.py createadmin [EMAIL]
+```
+where EMAIL is replaced by the email with which an account was created.
+
+To remove admin privileges, run
+```bash
+python3 mais.py removeadmin [EMAIL]
+```
+once again, where EMAIL is replaced with the email of an existing account.

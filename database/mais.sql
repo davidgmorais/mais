@@ -2,7 +2,8 @@ CREATE TABLE mais.USER(
     id int auto_increment NOT NULL PRIMARY KEY,
     email VARCHAR(50) NOT NULL,
     PASSWORD VARCHAR(64) NOT NULL,
-    passphrase varchar(64) default NULL null
+    passphrase varchar(64) default NULL null,
+    admin_flag BOOLEAN default 0 NULL
 );
 
 CREATE TABLE mais.IMAGE(

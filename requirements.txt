@@ -1,0 +1,13 @@
+opencv-python~=4.5.1.48
+PySimpleGUI~=4.55.1
+numpy~=1.19.5
+dlib~=19.22.1
+imutils~=0.5.4
+mysql-connector-python~=8.0.22
+cryptography~=2.1.4
+opencv-contrib-python
+RandomWords~=0.3.0
+SpeechRecognition~=3.8.1
+scipy~=1.5.4
+sklearn~=0.0
+python_speech_features
